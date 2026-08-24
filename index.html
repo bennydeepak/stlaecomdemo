@@ -265,9 +265,32 @@ table.mini td { padding: 7px 0; border-bottom: 1px solid var(--hair); vertical-a
 .rec-kv dt { color: var(--slate); }
 .rec-kv dd { margin: 0; font-variant-numeric: tabular-nums; }
 
+/* criterion builder */
+.wsum { display: flex; align-items: baseline; gap: 6px; }
+.wsum strong { font-size: 13px; font-variant-numeric: tabular-nums; }
+.crit-tier { font-size: 10px; letter-spacing: .11em; text-transform: uppercase; color: var(--slate); margin: 14px 0 2px; padding-top: 10px; border-top: 1px solid var(--line); }
+.crit-tier:first-of-type { margin-top: 0; padding-top: 0; border-top: 0; }
+.weight-top .del { border: 0; background: none; color: #8FA9A4; font-size: 14px; line-height: 1; padding: 0 2px; margin-left: 6px; }
+.weight-top .del:hover { color: var(--ink); }
+.addbox { border-top: 1px solid var(--line); margin-top: 16px; padding-top: 14px; display: flex; flex-direction: column; gap: 8px; }
+.addbox input { font: inherit; padding: 6px 9px; border: 1px solid var(--line); background: var(--panel); color: var(--ink); width: 100%; box-sizing: border-box; }
+.addbox .row { display: flex; gap: 8px; }
+.solid { background: var(--ink); color: #fff; border: 1px solid var(--ink); padding: 7px 14px; }
+.solid:disabled { background: var(--wash); color: #9BB3AF; border-color: var(--line); cursor: default; }
+.codechips { display: flex; gap: 4px; flex-wrap: wrap; }
+.code { font-size: 10px; letter-spacing: .06em; border: 1px solid var(--pale); color: var(--slate); padding: 1px 5px; white-space: nowrap; }
+.code.aw { background: var(--deep); border-color: var(--deep); color: #fff; }
+.code.ap { background: var(--wash); border-color: var(--teal-mid); color: var(--teal); }
+.proglist { display: grid; grid-template-columns: 66px 1fr; gap: 6px 12px; font-size: 12.5px; align-items: baseline; }
+.proglist dt { }
+.proglist dd { margin: 0; color: var(--slate); }
+.demo-note { font-size: 11.5px; color: var(--slate); border-left: 2px solid var(--teal-lt); padding-left: 10px; margin: 14px 0 0; max-width: 70ch; }
+
 /* hover tooltip */
 .tip {
   position: fixed; z-index: 1200; pointer-events: none;
+  font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Arial, sans-serif;
+  font-variant-numeric: tabular-nums lining-nums;
   background: #06302D; color: #E8F5F1; border: 1px solid #0E7C72;
   padding: 9px 11px; max-width: 268px; font-size: 12px; line-height: 1.42;
   box-shadow: 0 6px 20px rgba(6,48,45,.24);
@@ -323,180 +346,179 @@ const { useState, useMemo, useCallback, useEffect, useRef } = React;
 
 /* ================================================================== *
  *  1. PROJECT DATABASE                                                *
- *  Names, costs, funding status and hierarchy follow the published     *
- *  2026 Priority Infrastructure Project List. Coordinates are          *
- *  approximate corridor midpoints. Criterion scores, grant status and  *
- *  milestone dates are illustrative demo values.                       *
+ *  Demonstration data only.                                           *
  * ================================================================== */
 
 // m = [freight, reliability, safety, connectivity, condition, economic, readiness, leverage]
 const P = (id, parent, name, state, mode, cost, funded, phase, m, sponsor, ll, x) => ({
   id, parent, name, state, mode, cost, funded, phase, m, sponsor,
   lat: ll[0], lng: ll[1],
-  grant: x.g, grantStatus: x.gs, match: x.mp, milestone: x.ms, msDate: x.md,
-  agency: x.ag || sponsor,
+  eligible: x.el || [], awarded: x.aw || null, applied: x.ap || null,
+  match: x.mp, milestone: x.ms, msDate: x.md, agency: x.ag || sponsor,
 });
 
 const DATA = [
   /* --- Completed ------------------------------------------------- */
-  P("C1", null, "I-270: James S. McDonnell Blvd. to Bellefontaine Rd.", "MO", "Road", 278, 278, "Complete", [88,90,74,62,70,78,100,60], "MoDOT", [38.788,-90.256], {g:"State programme (STIP)", gs:"awarded", mp:20, ms:"Open to traffic", md:"2024 Q4"}),
-  P("C2", null, "Merchants Bridge replacement over the Mississippi", "MO-IL", "Rail", 222, 222, "Complete", [95,88,55,96,92,90,100,88], "TRRA", [38.6455,-90.1795], {g:"CRISI", gs:"awarded", mp:50, ms:"In revenue service", md:"2024 Q3"}),
-  P("C3", null, "Union Pacific Lenox Tower and track realignment", "IL", "Rail", 10.1, 10.1, "Complete", [80,84,50,88,74,68,100,70], "Union Pacific", [38.767,-90.088], {g:"CRISI", gs:"awarded", mp:50, ms:"In revenue service", md:"2023 Q2"}),
-  P("C4", null, "Earth City access improvements", "MO", "Road", 4.1, 4.1, "Complete", [62,58,55,48,52,70,100,55], "MoDOT", [38.762,-90.462], {g:"State programme (STIP)", gs:"awarded", mp:20, ms:"Open to traffic", md:"2023 Q4"}),
-  P("C5", null, "North Park access improvements", "MO", "Road", 3, 3, "Complete", [58,55,52,46,50,72,100,52], "MoDOT", [38.773,-90.319], {g:"State programme (STIP)", gs:"awarded", mp:20, ms:"Open to traffic", md:"2023 Q2"}),
-  P("C6", null, "J.S. McDonnell Connector access improvements", "MO", "Road", 2.4, 2.4, "Complete", [60,57,50,50,48,68,100,50], "MoDOT", [38.771,-90.334], {g:"State programme (STIP)", gs:"awarded", mp:20, ms:"Open to traffic", md:"2023 Q1"}),
+  P("C1", null, "I-270: James S. McDonnell Blvd. to Bellefontaine Rd.", "MO", "Road", 278, 278, "Complete", [88,90,74,62,70,78,100,60], "MoDOT", [38.788,-90.256], {el:["NHFP","STBG"], aw:"NHFP", mp:20, ms:"Open to traffic", md:"2024 Q4"}),
+  P("C2", null, "Merchants Bridge replacement over the Mississippi", "MO-IL", "Rail", 222, 222, "Complete", [95,88,55,96,92,90,100,88], "TRRA", [38.6455,-90.1795], {el:["CRISI","MEGA","RCE"], aw:"CRISI", mp:50, ms:"In revenue service", md:"2024 Q3"}),
+  P("C3", null, "Union Pacific Lenox Tower and track realignment", "IL", "Rail", 10.1, 10.1, "Complete", [80,84,50,88,74,68,100,70], "Union Pacific", [38.767,-90.088], {el:["CRISI","RCE"], aw:"CRISI", mp:50, ms:"In revenue service", md:"2023 Q2"}),
+  P("C4", null, "Earth City access improvements", "MO", "Road", 4.1, 4.1, "Complete", [62,58,55,48,52,70,100,55], "MoDOT", [38.762,-90.462], {el:["STBG","NHFP"], aw:"STBG", mp:20, ms:"Open to traffic", md:"2023 Q4"}),
+  P("C5", null, "North Park access improvements", "MO", "Road", 3, 3, "Complete", [58,55,52,46,50,72,100,52], "MoDOT", [38.773,-90.319], {el:["STBG"], aw:"STBG", mp:20, ms:"Open to traffic", md:"2023 Q2"}),
+  P("C6", null, "J.S. McDonnell Connector access improvements", "MO", "Road", 2.4, 2.4, "Complete", [60,57,50,50,48,68,100,50], "MoDOT", [38.771,-90.334], {el:["STBG"], aw:"STBG", mp:20, ms:"Open to traffic", md:"2023 Q1"}),
 
   /* --- Fully funded ---------------------------------------------- */
-  P("F1", null, "I-55 improvements, Rte. Z to U.S. Rte. 67", "MO", "Road", 246, 246, "Construction", [84,86,72,58,66,74,95,62], "MoDOT", [38.352,-90.383], {g:"State programme (STIP)", gs:"awarded", mp:20, ms:"Substantial completion", md:"2027 Q3"}),
-  P("F2", null, "IL Rte. 3 Connector", "IL", "Road", 102, 102, "Funded", [78,72,64,80,60,86,90,74], "IDOT", [38.595,-90.163], {g:"State programme (MYP)", gs:"awarded", mp:20, ms:"Letting", md:"2027 Q1"}),
-  P("F3", null, "MacArthur Bridge improvements over the Mississippi", "MO-IL", "Rail", 75, 75, "Funded", [90,80,58,94,88,82,88,80], "TRRA", [38.6105,-90.1795], {g:"CRISI", gs:"awarded", mp:50, ms:"Notice to proceed", md:"2026 Q4"}),
-  P("F4", null, "I-64: Green Mount Rd. to IL Rte. 158", "IL", "Road", 67.3, 67.3, "Funded", [70,76,66,62,58,78,90,68], "IDOT", [38.532,-89.928], {g:"State programme (MYP)", gs:"awarded", mp:20, ms:"Letting", md:"2027 Q2"}),
-  P("F5", null, "IL Rte. 158 relocation, Rte. 161 to Rte. 177", "IL", "Road", 19.99, 19.99, "Construction", [66,60,62,74,54,80,95,66], "IDOT", [38.528,-89.868], {g:"State programme (MYP)", gs:"awarded", mp:20, ms:"Substantial completion", md:"2027 Q2"}),
+  P("F1", null, "I-55 improvements, Rte. Z to U.S. Rte. 67", "MO", "Road", 246, 246, "Construction", [84,86,72,58,66,74,95,62], "MoDOT", [38.352,-90.383], {el:["NHFP","STBG","INFRA"], aw:"NHFP", mp:20, ms:"Substantial completion", md:"2027 Q3"}),
+  P("F2", null, "IL Rte. 3 Connector", "IL", "Road", 102, 102, "Funded", [78,72,64,80,60,86,90,74], "IDOT", [38.595,-90.163], {el:["NHFP","INFRA","STBG"], aw:"NHFP", mp:20, ms:"Letting", md:"2027 Q1"}),
+  P("F3", null, "MacArthur Bridge improvements over the Mississippi", "MO-IL", "Rail", 75, 75, "Funded", [90,80,58,94,88,82,88,80], "TRRA", [38.6105,-90.1795], {el:["CRISI","BIP","MEGA"], aw:"CRISI", mp:50, ms:"Notice to proceed", md:"2026 Q4"}),
+  P("F4", null, "I-64: Green Mount Rd. to IL Rte. 158", "IL", "Road", 67.3, 67.3, "Funded", [70,76,66,62,58,78,90,68], "IDOT", [38.532,-89.928], {el:["NHFP","STBG"], aw:"NHFP", mp:20, ms:"Letting", md:"2027 Q2"}),
+  P("F5", null, "IL Rte. 158 relocation, Rte. 161 to Rte. 177", "IL", "Road", 19.99, 19.99, "Construction", [66,60,62,74,54,80,95,66], "IDOT", [38.528,-89.868], {el:["STBG","NHFP"], aw:"STBG", mp:20, ms:"Substantial completion", md:"2027 Q2"}),
 
   /* --- I-270 corridor -------------------------------------------- */
-  P("R1", null, "I-270 improvements, I-70 (MO) to IL Rte. 157", "MO-IL", "Road", 1215.7, 786.7, "Partial", [96,98,82,84,80,92,72,78], "MoDOT / IDOT", [38.766,-90.180], {g:"MPDG / INFRA", gs:"applied", mp:40, ms:"Corridor programming decision", md:"2027 Q1", ag:"Bi-state (MoDOT / IDOT)"}),
-  P("R1a", "R1", "Rte. 367 to west of Rte. H (Riverview Dr.)", "MO", "Road", 42, 42, "Funded", [88,90,78,70,72,84,92,70], "MoDOT", [38.784,-90.213], {g:"State programme (STIP)", gs:"awarded", mp:20, ms:"Letting", md:"2026 Q4"}),
-  P("R1b", "R1", "Chain of Rocks Bridge replacement", "MO-IL", "Road", 496, 496, "Construction", [96,96,84,88,94,90,95,84], "IDOT / MoDOT", [38.7605,-90.1785], {g:"Bridge Investment Program", gs:"awarded", mp:20, ms:"Substantial completion", md:"2029 Q2"}),
-  P("R1c", "R1", "Chain of Rocks Canal to E. of St. Thomas Rd.", "IL", "Road", 104, 60, "Partial", [84,88,76,72,78,80,70,62], "IDOT", [38.755,-90.128], {g:"Bridge Investment Program", gs:"applied", mp:20, ms:"Design complete", md:"2027 Q3"}),
-  P("R1d", "R1", "St. Thomas Rd. to IL Rte. 111", "IL", "Road", 399.6, 14.6, "Partial", [86,90,78,74,76,82,46,40], "IDOT", [38.752,-90.100], {g:"MPDG / INFRA", gs:"eligible", mp:40, ms:"Engineering underway", md:"2028 Q1"}),
-  P("R1e", "R1", "IL Rte. 111 at Chain of Rocks Rd. intersection", "IL", "Road", 20.1, 20.1, "Funded", [72,76,80,66,64,74,90,68], "IDOT", [38.746,-90.075], {g:"State programme (MYP)", gs:"awarded", mp:20, ms:"Letting", md:"2027 Q1"}),
-  P("R1f", "R1", "E. of IL Rte. 111 to E. of I-55/70 resurfacing", "IL", "Road", 93.5, 93.5, "Funded", [76,70,72,60,86,68,92,66], "IDOT", [38.740,-90.045], {g:"State programme (MYP)", gs:"awarded", mp:20, ms:"Letting", md:"2027 Q2"}),
-  P("R1g", "R1", "Riverview Dr. interchange", "MO", "Road", 35.4, 35.4, "Construction", [80,82,74,76,68,82,95,72], "MoDOT", [38.780,-90.196], {g:"State programme (STIP)", gs:"awarded", mp:20, ms:"Substantial completion", md:"2027 Q4"}),
-  P("R1h", "R1", "I-270 at IL Rte. 111 interchange", "IL", "Road", 25.1, 25.1, "Construction", [78,80,76,72,66,78,95,70], "IDOT", [38.747,-90.078], {g:"State programme (MYP)", gs:"awarded", mp:20, ms:"Substantial completion", md:"2027 Q3"}),
+  P("R1", null, "I-270 improvements, I-70 (MO) to IL Rte. 157", "MO-IL", "Road", 1215.7, 786.7, "Partial", [96,98,82,84,80,92,72,78], "MoDOT / IDOT", [38.766,-90.180], {el:["INFRA","MEGA","NHFP","TIFIA","BIP"], ap:"INFRA", mp:40, ms:"Corridor programming decision", md:"2027 Q1", ag:"Bi-state (MoDOT / IDOT)"}),
+  P("R1a", "R1", "Rte. 367 to west of Rte. H (Riverview Dr.)", "MO", "Road", 42, 42, "Funded", [88,90,78,70,72,84,92,70], "MoDOT", [38.784,-90.213], {el:["NHFP","STBG"], aw:"NHFP", mp:20, ms:"Letting", md:"2026 Q4"}),
+  P("R1b", "R1", "Chain of Rocks Bridge replacement", "MO-IL", "Road", 496, 496, "Construction", [96,96,84,88,94,90,95,84], "IDOT / MoDOT", [38.7605,-90.1785], {el:["BIP","INFRA","MEGA"], aw:"BIP", mp:20, ms:"Substantial completion", md:"2029 Q2"}),
+  P("R1c", "R1", "Chain of Rocks Canal to E. of St. Thomas Rd.", "IL", "Road", 104, 60, "Partial", [84,88,76,72,78,80,70,62], "IDOT", [38.755,-90.128], {el:["BIP","NHFP","INFRA"], ap:"BIP", mp:20, ms:"Design complete", md:"2027 Q3"}),
+  P("R1d", "R1", "St. Thomas Rd. to IL Rte. 111", "IL", "Road", 399.6, 14.6, "Partial", [86,90,78,74,76,82,46,40], "IDOT", [38.752,-90.100], {el:["INFRA","MEGA","NHFP","TIFIA"], mp:40, ms:"Engineering underway", md:"2028 Q1"}),
+  P("R1e", "R1", "IL Rte. 111 at Chain of Rocks Rd. intersection", "IL", "Road", 20.1, 20.1, "Funded", [72,76,80,66,64,74,90,68], "IDOT", [38.746,-90.075], {el:["STBG","NHFP"], aw:"STBG", mp:20, ms:"Letting", md:"2027 Q1"}),
+  P("R1f", "R1", "E. of IL Rte. 111 to E. of I-55/70 resurfacing", "IL", "Road", 93.5, 93.5, "Funded", [76,70,72,60,86,68,92,66], "IDOT", [38.740,-90.045], {el:["NHFP","STBG"], aw:"NHFP", mp:20, ms:"Letting", md:"2027 Q2"}),
+  P("R1g", "R1", "Riverview Dr. interchange", "MO", "Road", 35.4, 35.4, "Construction", [80,82,74,76,68,82,95,72], "MoDOT", [38.780,-90.196], {el:["STBG","NHFP"], aw:"STBG", mp:20, ms:"Substantial completion", md:"2027 Q4"}),
+  P("R1h", "R1", "I-270 at IL Rte. 111 interchange", "IL", "Road", 25.1, 25.1, "Construction", [78,80,76,72,66,78,95,70], "IDOT", [38.747,-90.078], {el:["STBG","NHFP"], aw:"STBG", mp:20, ms:"Substantial completion", md:"2027 Q3"}),
 
   /* --- I-70 corridor --------------------------------------------- */
-  P("R2", null, "I-70: Wentzville to Stan Musial Veterans Memorial Bridge", "MO", "Road", 1181, 754, "Partial", [94,96,84,76,82,90,66,80], "MoDOT", [38.760,-90.560], {g:"MPDG / INFRA", gs:"applied", mp:40, ms:"Corridor programming decision", md:"2027 Q2"}),
-  P("R2a", "R2", "Segment 1: Warren County to Wentzville (US 61)", "MO", "Road", 634, 634, "Funded", [90,94,82,66,78,86,92,82], "MoDOT", [38.808,-90.905], {g:"State programme (STIP)", gs:"awarded", mp:20, ms:"Under construction", md:"2028 Q4"}),
-  P("R2b", "R2", "Segment 2: Bryan Rd. to Mid Rivers Mall Dr.", "MO", "Road", 20, 0, "Unfunded", [78,84,76,62,70,78,58,44], "MoDOT", [38.789,-90.700], {g:"RAISE", gs:"eligible", mp:20, ms:"Concept scoping", md:"2028 Q2"}),
-  P("R2c", "R2", "Segment 2: Cave Springs Rd. to Convention Center Blvd.", "MO", "Road", 62, 62, "Funded", [80,82,74,60,72,76,96,70], "MoDOT", [38.788,-90.560], {g:"State programme (STIP)", gs:"awarded", mp:20, ms:"Substantial completion", md:"2026 Q4"}),
-  P("R2d", "R2", "Segment 4: Missouri River to North Hanley Rd.", "MO", "Road", 175, 0, "Unfunded", [88,90,80,70,78,84,52,42], "MoDOT", [38.735,-90.360], {g:"MPDG / INFRA", gs:"eligible", mp:40, ms:"Environmental scoping", md:"2028 Q3"}),
-  P("R2e", "R2", "Segment 4: Missouri River to US 67 bridges", "MO", "Road", 58, 58, "Funded", [82,78,76,64,90,74,90,68], "MoDOT", [38.745,-90.420], {g:"Bridge Investment Program", gs:"awarded", mp:20, ms:"Letting", md:"2027 Q1"}),
-  P("R2f", "R2", "Segment 5: City limits to Benton St.", "MO", "Road", 152, 0, "Unfunded", [86,88,82,74,80,86,50,40], "MoDOT", [38.660,-90.230], {g:"MPDG / INFRA", gs:"eligible", mp:40, ms:"Environmental scoping", md:"2028 Q4"}),
-  P("R2g", "R2", "Segment 5: Benton St. to Illinois state line", "MO", "Road", 80, 0, "Unfunded", [88,86,80,82,82,84,50,40], "MoDOT", [38.640,-90.190], {g:"MPDG / INFRA", gs:"eligible", mp:40, ms:"Environmental scoping", md:"2029 Q1"}),
+  P("R2", null, "I-70: Wentzville to Stan Musial Veterans Memorial Bridge", "MO", "Road", 1181, 754, "Partial", [94,96,84,76,82,90,66,80], "MoDOT", [38.760,-90.560], {el:["INFRA","MEGA","NHFP","TIFIA"], ap:"INFRA", mp:40, ms:"Corridor programming decision", md:"2027 Q2"}),
+  P("R2a", "R2", "Segment 1: Warren County to Wentzville (US 61)", "MO", "Road", 634, 634, "Funded", [90,94,82,66,78,86,92,82], "MoDOT", [38.808,-90.905], {el:["NHFP","MEGA","RURAL"], aw:"MEGA", mp:20, ms:"Under construction", md:"2028 Q4"}),
+  P("R2b", "R2", "Segment 2: Bryan Rd. to Mid Rivers Mall Dr.", "MO", "Road", 20, 0, "Unfunded", [78,84,76,62,70,78,58,44], "MoDOT", [38.789,-90.700], {el:["RAISE","STBG","NHFP"], mp:20, ms:"Concept scoping", md:"2028 Q2"}),
+  P("R2c", "R2", "Segment 2: Cave Springs Rd. to Convention Center Blvd.", "MO", "Road", 62, 62, "Funded", [80,82,74,60,72,76,96,70], "MoDOT", [38.788,-90.560], {el:["NHFP","STBG"], aw:"NHFP", mp:20, ms:"Substantial completion", md:"2026 Q4"}),
+  P("R2d", "R2", "Segment 4: Missouri River to North Hanley Rd.", "MO", "Road", 175, 0, "Unfunded", [88,90,80,70,78,84,52,42], "MoDOT", [38.735,-90.360], {el:["INFRA","MEGA","NHFP"], mp:40, ms:"Environmental scoping", md:"2028 Q3"}),
+  P("R2e", "R2", "Segment 4: Missouri River to US 67 bridges", "MO", "Road", 58, 58, "Funded", [82,78,76,64,90,74,90,68], "MoDOT", [38.745,-90.420], {el:["BIP","NHFP"], aw:"BIP", mp:20, ms:"Letting", md:"2027 Q1"}),
+  P("R2f", "R2", "Segment 5: City limits to Benton St.", "MO", "Road", 152, 0, "Unfunded", [86,88,82,74,80,86,50,40], "MoDOT", [38.660,-90.230], {el:["INFRA","MEGA","NHFP","CRP"], mp:40, ms:"Environmental scoping", md:"2028 Q4"}),
+  P("R2g", "R2", "Segment 5: Benton St. to Illinois state line", "MO", "Road", 80, 0, "Unfunded", [88,86,80,82,82,84,50,40], "MoDOT", [38.640,-90.190], {el:["INFRA","BIP","NHFP"], mp:40, ms:"Environmental scoping", md:"2029 Q1"}),
 
   /* --- Other partially programmed --------------------------------- */
-  P("R3", null, "America's Central Port intermodal improvements", "IL", "Port", 376.9, 148, "Partial", [92,74,54,96,70,94,68,72], "America's Central Port", [38.706,-90.135], {g:"Port Infrastructure Development", gs:"applied", mp:20, ms:"Phase 2 design", md:"2027 Q2"}),
-  P("R4", null, "IL Rte. 3 access improvements", "IL", "Road", 335.5, 120, "Partial", [86,78,70,88,66,92,64,66], "IDOT", [38.570,-90.160], {g:"MPDG / INFRA", gs:"applied", mp:40, ms:"Segment design", md:"2027 Q3"}),
-  P("R5", null, "I-44 improvements, Oklahoma state line through Franklin County", "MO", "Road", 200, 74, "Partial", [82,84,78,58,76,76,60,58], "MoDOT", [38.420,-90.980], {g:"State programme (STIP)", gs:"applied", mp:20, ms:"Segment programming", md:"2027 Q4"}),
-  P("R6", null, "I-255 / Davis Street Ferry Rd. interchange", "IL", "Road", 121.4, 44, "Partial", [80,76,72,78,62,84,62,60], "IDOT", [38.462,-90.140], {g:"MPDG / INFRA", gs:"eligible", mp:40, ms:"Design", md:"2028 Q1"}),
-  P("R7", null, "Madison Yard expansion and St. Clair Co. rail improvements", "IL", "Rail", 98, 36, "Partial", [94,72,52,98,68,90,66,74], "TRRA / St. Clair Co.", [38.679,-90.155], {g:"CRISI", gs:"applied", mp:50, ms:"Phase 1 construction", md:"2027 Q2"}),
-  P("R8", null, "Mississippi River port development projects", "MO", "Port", 59, 22, "Partial", [90,66,48,94,72,88,64,70], "Port of Metro St. Louis", [38.545,-90.240], {g:"Port Infrastructure Development", gs:"applied", mp:20, ms:"Terminal design", md:"2027 Q3"}),
-  P("R9", null, "Lambert International Airport cargo improvements", "MO", "Air", 49.1, 20, "Partial", [76,62,46,90,60,86,70,64], "STL Airport Authority", [38.748,-90.368], {g:"Airport Improvement Program", gs:"applied", mp:25, ms:"Apron design", md:"2027 Q1"}),
-  P("R10", null, "Kaskaskia Regional Port District improvements", "IL", "Port", 45.5, 18, "Partial", [84,58,44,88,66,82,66,68], "KRPD", [38.128,-89.902], {g:"Port Infrastructure Development", gs:"applied", mp:20, ms:"Harbour design", md:"2027 Q2"}),
-  P("R11", null, "North Riverfront Commerce Corridor improvements", "MO", "Road", 33.7, 17.7, "Partial", [82,70,64,86,64,88,74,62], "City of St. Louis", [38.688,-90.203], {g:"RAISE", gs:"applied", mp:20, ms:"Phase 2 letting", md:"2027 Q2"}),
-  P("R11a", "R11", "Hall St.: Grand Ave. to Adelaide Ave.", "MO", "Road", 4.3, 4.3, "Complete", [76,66,62,80,60,82,100,60], "City of St. Louis", [38.679,-90.202], {g:"RAISE", gs:"awarded", mp:20, ms:"Open to traffic", md:"2024 Q2"}),
-  P("R11b", "R11", "Hall St.: Adelaide Ave. to Riverview Dr.", "MO", "Road", 17, 6, "Partial", [80,70,66,84,62,86,62,56], "City of St. Louis", [38.700,-90.198], {g:"RAISE", gs:"applied", mp:20, ms:"Design", md:"2027 Q1"}),
-  P("R11c", "R11", "Riverview Dr.: Hall St. to I-270", "MO", "Road", 5.8, 5.8, "Complete", [78,68,64,82,58,80,100,58], "City of St. Louis", [38.740,-90.196], {g:"RAISE", gs:"awarded", mp:20, ms:"Open to traffic", md:"2024 Q4"}),
-  P("R11d", "R11", "Branch St. improvements", "MO", "Road", 5, 0, "Unfunded", [70,62,60,76,56,78,56,44], "City of St. Louis", [38.652,-90.196], {g:"RAISE", gs:"eligible", mp:20, ms:"Concept scoping", md:"2028 Q1"}),
-  P("R11e", "R11", "I-70 westbound off-ramp to North Broadway relocation", "MO", "Road", 1.6, 1.6, "Complete", [68,64,66,74,54,74,100,56], "City of St. Louis", [38.645,-90.192], {g:"State programme (STIP)", gs:"awarded", mp:20, ms:"Open to traffic", md:"2023 Q3"}),
+  P("R3", null, "America's Central Port intermodal improvements", "IL", "Port", 376.9, 148, "Partial", [92,74,54,96,70,94,68,72], "America's Central Port", [38.706,-90.135], {el:["PIDP","CPP","INFRA","RAISE"], ap:"PIDP", mp:20, ms:"Phase 2 design", md:"2027 Q2"}),
+  P("R4", null, "IL Rte. 3 access improvements", "IL", "Road", 335.5, 120, "Partial", [86,78,70,88,66,92,64,66], "IDOT", [38.570,-90.160], {el:["INFRA","NHFP","TIFIA"], ap:"INFRA", mp:40, ms:"Segment design", md:"2027 Q3"}),
+  P("R5", null, "I-44 improvements, Oklahoma state line through Franklin County", "MO", "Road", 200, 74, "Partial", [82,84,78,58,76,76,60,58], "MoDOT", [38.420,-90.980], {el:["RURAL","NHFP","INFRA"], ap:"RURAL", mp:20, ms:"Segment programming", md:"2027 Q4"}),
+  P("R6", null, "I-255 / Davis Street Ferry Rd. interchange", "IL", "Road", 121.4, 44, "Partial", [80,76,72,78,62,84,62,60], "IDOT", [38.462,-90.140], {el:["INFRA","NHFP","STBG"], mp:40, ms:"Design", md:"2028 Q1"}),
+  P("R7", null, "Madison Yard expansion and St. Clair Co. rail improvements", "IL", "Rail", 98, 36, "Partial", [94,72,52,98,68,90,66,74], "TRRA / St. Clair Co.", [38.679,-90.155], {el:["CRISI","RCE","MEGA"], ap:"CRISI", mp:50, ms:"Phase 1 construction", md:"2027 Q2"}),
+  P("R8", null, "Mississippi River port development projects", "MO", "Port", 59, 22, "Partial", [90,66,48,94,72,88,64,70], "Port of Metro St. Louis", [38.545,-90.240], {el:["PIDP","CPP","RAISE","TWCS"], ap:"PIDP", mp:20, ms:"Terminal design", md:"2027 Q3"}),
+  P("R9", null, "Lambert International Airport cargo improvements", "MO", "Air", 49.1, 20, "Partial", [76,62,46,90,60,86,70,64], "STL Airport Authority", [38.748,-90.368], {el:["AIP","FAST","RAISE"], ap:"AIP", mp:25, ms:"Apron design", md:"2027 Q1"}),
+  P("R10", null, "Kaskaskia Regional Port District improvements", "IL", "Port", 45.5, 18, "Partial", [84,58,44,88,66,82,66,68], "KRPD", [38.128,-89.902], {el:["PIDP","RURAL","CPP"], ap:"PIDP", mp:20, ms:"Harbour design", md:"2027 Q2"}),
+  P("R11", null, "North Riverfront Commerce Corridor improvements", "MO", "Road", 33.7, 17.7, "Partial", [82,70,64,86,64,88,74,62], "City of St. Louis", [38.688,-90.203], {el:["RAISE","STBG","CRP"], ap:"RAISE", mp:20, ms:"Phase 2 letting", md:"2027 Q2"}),
+  P("R11a", "R11", "Hall St.: Grand Ave. to Adelaide Ave.", "MO", "Road", 4.3, 4.3, "Complete", [76,66,62,80,60,82,100,60], "City of St. Louis", [38.679,-90.202], {el:["RAISE","STBG"], aw:"RAISE", mp:20, ms:"Open to traffic", md:"2024 Q2"}),
+  P("R11b", "R11", "Hall St.: Adelaide Ave. to Riverview Dr.", "MO", "Road", 17, 6, "Partial", [80,70,66,84,62,86,62,56], "City of St. Louis", [38.700,-90.198], {el:["RAISE","STBG"], ap:"RAISE", mp:20, ms:"Design", md:"2027 Q1"}),
+  P("R11c", "R11", "Riverview Dr.: Hall St. to I-270", "MO", "Road", 5.8, 5.8, "Complete", [78,68,64,82,58,80,100,58], "City of St. Louis", [38.740,-90.196], {el:["RAISE","STBG"], aw:"RAISE", mp:20, ms:"Open to traffic", md:"2024 Q4"}),
+  P("R11d", "R11", "Branch St. improvements", "MO", "Road", 5, 0, "Unfunded", [70,62,60,76,56,78,56,44], "City of St. Louis", [38.652,-90.196], {el:["RAISE","STBG","CRP"], mp:20, ms:"Concept scoping", md:"2028 Q1"}),
+  P("R11e", "R11", "I-70 westbound off-ramp to North Broadway relocation", "MO", "Road", 1.6, 1.6, "Complete", [68,64,66,74,54,74,100,56], "City of St. Louis", [38.645,-90.192], {el:["STBG"], aw:"STBG", mp:20, ms:"Open to traffic", md:"2023 Q3"}),
 
   /* --- Concept development or planning ----------------------------- */
-  P("D1", null, "New terminal, Lambert International Airport", "MO", "Air", 3000, 900, "Partial", [72,58,44,92,74,96,40,66], "STL Airport Authority", [38.751,-90.373], {g:"Airport Improvement Program", gs:"applied", mp:25, ms:"Programme definition", md:"2028 Q2"}),
-  P("D2", null, "Martin Luther King Bridge replacement", "MO-IL", "Road", 629, 190, "Partial", [84,82,78,88,96,82,42,58], "Bi-state", [38.6335,-90.1815], {g:"Bridge Investment Program", gs:"applied", mp:20, ms:"Feasibility complete", md:"2028 Q1", ag:"Bi-state (MoDOT / IDOT)"}),
-  P("D3", null, "I-55/I-70 add lanes, I-255 to I-270", "IL", "Road", 400, 110, "Partial", [88,92,76,70,68,80,46,54], "IDOT", [38.680,-90.020], {g:"MPDG / INFRA", gs:"eligible", mp:40, ms:"Environmental review", md:"2028 Q3"}),
-  P("D4", null, "MidAmerica St. Louis Airport distribution improvements", "IL", "Air", 45, 0, "Unfunded", [70,54,42,86,58,88,48,50], "St. Clair County", [38.545,-89.835], {g:"Airport Improvement Program", gs:"eligible", mp:25, ms:"Concept scoping", md:"2028 Q2"}),
-  P("D5", null, "Lambert International Airport access improvements", "MO", "Road", 37.5, 0, "Unfunded", [68,64,58,84,56,80,50,48], "STL Airport Authority", [38.740,-90.352], {g:"RAISE", gs:"eligible", mp:20, ms:"Concept scoping", md:"2028 Q1"}),
-  P("D6", null, "I-255 / Fish Lake (Ramsey Rd.) interchange", "IL", "Road", 27, 0, "Unfunded", [72,70,68,74,58,82,52,50], "IDOT", [38.437,-90.098], {g:"RAISE", gs:"eligible", mp:20, ms:"Concept scoping", md:"2028 Q3"}),
-  P("D7", null, "Downtown Mississippi River bridge interchange studies", "MO-IL", "Road", 0, 0, "Study", [80,84,74,86,88,78,30,46], "Bi-state", [38.628,-90.185], {g:"Planning funds", gs:"eligible", mp:20, ms:"Scope of study", md:"2027 Q2", ag:"Bi-state (MoDOT / IDOT)"}),
+  P("D1", null, "New terminal, Lambert International Airport", "MO", "Air", 3000, 900, "Partial", [72,58,44,92,74,96,40,66], "STL Airport Authority", [38.751,-90.373], {el:["AIP","FAST","MEGA","TIFIA"], ap:"AIP", mp:25, ms:"Programme definition", md:"2028 Q2"}),
+  P("D2", null, "Martin Luther King Bridge replacement", "MO-IL", "Road", 629, 190, "Partial", [84,82,78,88,96,82,42,58], "Bi-state", [38.6335,-90.1815], {el:["BIP","MEGA","INFRA"], ap:"BIP", mp:20, ms:"Feasibility complete", md:"2028 Q1", ag:"Bi-state (MoDOT / IDOT)"}),
+  P("D3", null, "I-55/I-70 add lanes, I-255 to I-270", "IL", "Road", 400, 110, "Partial", [88,92,76,70,68,80,46,54], "IDOT", [38.680,-90.020], {el:["INFRA","NHFP","MEGA"], mp:40, ms:"Environmental review", md:"2028 Q3"}),
+  P("D4", null, "MidAmerica St. Louis Airport distribution improvements", "IL", "Air", 45, 0, "Unfunded", [70,54,42,86,58,88,48,50], "St. Clair County", [38.545,-89.835], {el:["AIP","FAST","RURAL"], mp:25, ms:"Concept scoping", md:"2028 Q2"}),
+  P("D5", null, "Lambert International Airport access improvements", "MO", "Road", 37.5, 0, "Unfunded", [68,64,58,84,56,80,50,48], "STL Airport Authority", [38.740,-90.352], {el:["RAISE","STBG","AIP"], mp:20, ms:"Concept scoping", md:"2028 Q1"}),
+  P("D6", null, "I-255 / Fish Lake (Ramsey Rd.) interchange", "IL", "Road", 27, 0, "Unfunded", [72,70,68,74,58,82,52,50], "IDOT", [38.437,-90.098], {el:["RAISE","STBG","NHFP"], mp:20, ms:"Concept scoping", md:"2028 Q3"}),
+  P("D7", null, "Downtown Mississippi River bridge interchange studies", "MO-IL", "Road", 0, 0, "Study", [80,84,74,86,88,78,30,46], "Bi-state", [38.628,-90.185], {el:["HRD","BTS","BIP"], mp:20, ms:"Scope of study", md:"2027 Q2", ag:"Bi-state (MoDOT / IDOT)"}),
 ];
 
 /* ================================================================== *
- *  2. SELECTION CRITERIA (Task 5)                                     *
+ *  2. SELECTION CRITERIA                                              *
+ *  Core criteria carry the region's stated objectives; supporting      *
+ *  criteria sit below them. Weights always total 100.                  *
  * ================================================================== */
 
-const CRITERIA = [
-  { key:"freight",      label:"Freight volume and value served", w:20, unit:"Annual truck and rail tonnage on the facility" },
-  { key:"reliability",  label:"Reliability and bottleneck relief", w:15, unit:"Truck travel time reliability index" },
-  { key:"safety",       label:"Truck safety performance",          w:15, unit:"Truck-involved crash rate against state average" },
-  { key:"connectivity", label:"Multimodal connectivity",           w:10, unit:"Direct access to port, rail, or air cargo" },
-  { key:"condition",    label:"Asset condition",                   w:10, unit:"Bridge and pavement condition rating" },
-  { key:"economic",     label:"Economic and industrial impact",    w:15, unit:"Jobs and developable acreage within the ISAs" },
-  { key:"readiness",    label:"Delivery readiness",                w:10, unit:"Environmental clearance, design, right of way" },
-  { key:"leverage",     label:"Funding leverage",                  w:5,  unit:"Non-regional match secured per dollar requested" },
+const DEFAULT_CRITERIA = [
+  { key:"economic", tier:"core", label:"Economic impact", w:16, mi:5,
+    unit:"Regional competitiveness: new business development, job creation, first-order economic benefit" },
+  { key:"multimodal", tier:"core", label:"Multimodal impact", w:16, mi:3,
+    unit:"Flexibility, reliability and connectivity of the freight network: speed of freight, cost, reliability" },
+  { key:"efficiency", tier:"core", label:"Efficiency impact", w:15, mi:1,
+    unit:"More efficient use of the region's existing assets" },
+  { key:"safety", tier:"core", label:"Safety in travel", w:15, mi:2,
+    unit:"Advances the safety of the region's transportation assets" },
+  { key:"readiness", tier:"core", label:"Project readiness", w:14, mi:6,
+    unit:"Approved purpose and need, environmental feasibility, funding eligibility" },
+
+  { key:"freight", tier:"supporting", label:"Freight volume and value served", w:10, mi:0,
+    unit:"Truck and rail tonnage and commodity value carried by the facility" },
+  { key:"condition", tier:"supporting", label:"Asset condition", w:8, mi:4,
+    unit:"Bridge and pavement condition rating on the affected asset" },
+  { key:"leverage", tier:"supporting", label:"Funding leverage", w:6, mi:7,
+    unit:"Non-regional match secured per dollar of regional contribution" },
 ];
 
 const MODES  = ["Road", "Rail", "Port", "Air"];
 const STATES = ["MO", "IL", "MO-IL"];
 const PHASES = ["Complete", "Construction", "Funded", "Partial", "Unfunded", "Study"];
 
-const GRANT_PROGRAMS = [
-  { name:"MPDG / INFRA",                  cycle:"Autumn",  match:"40% non-federal typical" },
-  { name:"RAISE",                         cycle:"Winter",  match:"20% non-federal" },
-  { name:"CRISI",                         cycle:"Spring",  match:"50% non-federal" },
-  { name:"Port Infrastructure Development", cycle:"Spring", match:"20% non-federal" },
-  { name:"Bridge Investment Program",      cycle:"Autumn",  match:"20% non-federal" },
-  { name:"Airport Improvement Program",    cycle:"Rolling", match:"25% sponsor share" },
-  { name:"State programme (STIP)",         cycle:"Rolling", match:"20% state or local" },
-  { name:"State programme (MYP)",          cycle:"Rolling", match:"20% state or local" },
-  { name:"Planning funds",                 cycle:"Rolling", match:"20% local" },
-];
+/* ================================================================== *
+ *  3. GRANT PROGRAMMES                                                *
+ * ================================================================== */
+
+const PROGRAMS = {
+  BIP:   "Bridge Investment Program",
+  RAISE: "Local and Regional Project Assistance Grants",
+  INFRA: "Nationally Significant Freight and Highway Projects",
+  NHFP:  "National Highway Freight Program",
+  CRISI: "Consolidated Rail Infrastructure and Safety Improvements",
+  MEGA:  "National Infrastructure Project Assistance",
+  CPP:   "Grants to Reduce Air Pollution at Ports",
+  RURAL: "Rural Surface Transportation Grant Program",
+  TIFIA: "Transportation Infrastructure Finance and Innovation Act",
+  HRD:   "Highway Research and Development Program",
+  FAST:  "Fueling Aviation's Sustainable Transition",
+  BTS:   "Bureau of Transportation Statistics",
+  TWCS:  "Temporary Water Crossing Structures",
+  PIDP:  "Port Infrastructure Development Program",
+  AIP:   "Airport Improvement Program",
+  RCE:   "Railroad Crossing Elimination Program",
+  CRP:   "Carbon Reduction Program",
+  STBG:  "Surface Transportation Block Grant",
+};
 
 /* ================================================================== *
- *  3. GIS OVERLAY DATA                                                *
- *  Demo geometry. ISA boundaries are simplified illustrative extents,  *
- *  not the adopted 2013 boundaries. Corridor volumes and crash counts  *
- *  are placeholders standing in for the Task 3 data acquisition.       *
+ *  4. MAP OVERLAY DATA                                                *
  * ================================================================== */
 
 const ISA_AREAS = [
-  { name:"Earth City / Riverport",      acres:2450, box:[[38.745,-90.485],[38.785,-90.435]] },
-  { name:"Hazelwood / Lambert North",   acres:3100, box:[[38.755,-90.395],[38.795,-90.300]] },
-  { name:"North Riverfront",            acres:1870, box:[[38.655,-90.215],[38.730,-90.180]] },
-  { name:"Granite City / Madison",      acres:2960, box:[[38.680,-90.165],[38.735,-90.100]] },
-  { name:"Chesterfield Valley",         acres:1240, box:[[38.640,-90.610],[38.680,-90.520]] },
-  { name:"Fenton / Valley Park",        acres:980,  box:[[38.480,-90.480],[38.530,-90.400]] },
-  { name:"Edwardsville / I-55 corridor",acres:2210, box:[[38.755,-90.010],[38.815,-89.930]] },
-  { name:"Cahokia Heights / Sauget",    acres:1660, box:[[38.545,-90.190],[38.605,-90.140]] },
-  { name:"MidAmerica / Scott AFB",      acres:1420, box:[[38.520,-89.870],[38.570,-89.790]] },
-];
-
-const CORRIDORS = [
-  { name:"I-70 (Missouri)", aadtt:12500, path:[[38.808,-90.905],[38.788,-90.700],[38.760,-90.520],[38.735,-90.360],[38.680,-90.250],[38.640,-90.190]] },
-  { name:"I-270 loop",      aadtt:15200, path:[[38.788,-90.470],[38.790,-90.330],[38.784,-90.213],[38.760,-90.178],[38.750,-90.100],[38.740,-90.020]] },
-  { name:"I-55 (Missouri)", aadtt:9800,  path:[[38.640,-90.200],[38.520,-90.310],[38.352,-90.383],[38.230,-90.400]] },
-  { name:"I-64 (Illinois)", aadtt:8600,  path:[[38.625,-90.170],[38.590,-90.060],[38.560,-89.980],[38.532,-89.928],[38.528,-89.860]] },
-  { name:"I-44 (Missouri)", aadtt:11200, path:[[38.630,-90.230],[38.540,-90.480],[38.480,-90.700],[38.420,-90.980]] },
-  { name:"I-255 (Illinois)",aadtt:7400,  path:[[38.740,-90.020],[38.640,-90.010],[38.540,-90.060],[38.462,-90.140],[38.437,-90.098]] },
-  { name:"IL Rte. 3",       aadtt:6300,  path:[[38.760,-90.130],[38.680,-90.150],[38.595,-90.163],[38.540,-90.180],[38.480,-90.220]] },
-  { name:"I-55/70 (Illinois)",aadtt:10400,path:[[38.640,-90.170],[38.680,-90.060],[38.720,-89.990],[38.790,-89.940]] },
+  { name:"Earth City / Riverport",       acres:2450, box:[[38.745,-90.485],[38.785,-90.435]] },
+  { name:"Hazelwood / Lambert North",    acres:3100, box:[[38.755,-90.395],[38.795,-90.300]] },
+  { name:"North Riverfront",             acres:1870, box:[[38.655,-90.215],[38.730,-90.180]] },
+  { name:"Granite City / Madison",       acres:2960, box:[[38.680,-90.165],[38.735,-90.100]] },
+  { name:"Chesterfield Valley",          acres:1240, box:[[38.640,-90.610],[38.680,-90.520]] },
+  { name:"Fenton / Valley Park",         acres:980,  box:[[38.480,-90.480],[38.530,-90.400]] },
+  { name:"Edwardsville / I-55 corridor", acres:2210, box:[[38.755,-90.010],[38.815,-89.930]] },
+  { name:"Cahokia Heights / Sauget",     acres:1660, box:[[38.545,-90.190],[38.605,-90.140]] },
+  { name:"MidAmerica / Scott AFB",       acres:1420, box:[[38.520,-89.870],[38.570,-89.790]] },
 ];
 
 const GATEWAYS = [
-  { name:"Port of Metropolitan St. Louis", mt:5.8, ll:[38.630,-90.190] },
-  { name:"America's Central Port",         mt:4.2, ll:[38.706,-90.135] },
-  { name:"Madison Yard (TRRA)",            mt:3.1, ll:[38.679,-90.155] },
-  { name:"Kaskaskia Regional Port",        mt:2.6, ll:[38.128,-89.902] },
-  { name:"Granite City rail and steel",    mt:2.2, ll:[38.712,-90.120] },
-  { name:"Jefferson County terminals",     mt:1.4, ll:[38.400,-90.375] },
+  { name:"Port of Metropolitan St. Louis", mt:5.8,  ll:[38.630,-90.190] },
+  { name:"America's Central Port",         mt:4.2,  ll:[38.706,-90.135] },
+  { name:"Madison Yard (TRRA)",            mt:3.1,  ll:[38.679,-90.155] },
+  { name:"Kaskaskia Regional Port",        mt:2.6,  ll:[38.128,-89.902] },
+  { name:"Granite City rail and steel",    mt:2.2,  ll:[38.712,-90.120] },
+  { name:"Jefferson County terminals",     mt:1.4,  ll:[38.400,-90.375] },
   { name:"Lambert air cargo",              mt:0.18, ll:[38.748,-90.368] },
   { name:"MidAmerica air cargo",           mt:0.05, ll:[38.545,-89.835] },
 ];
 
 const HOTSPOTS = [
-  { name:"I-55 / I-44 downtown split",        crashes:51, ll:[38.612,-90.212] },
-  { name:"I-270 at Riverview Dr. weave",      crashes:42, ll:[38.780,-90.196] },
-  { name:"I-70 at Blanchette Bridge",         crashes:38, ll:[38.782,-90.500] },
-  { name:"Chain of Rocks Canal bridge",       crashes:34, ll:[38.755,-90.128] },
-  { name:"I-255 at Davis Street Ferry Rd.",   crashes:31, ll:[38.462,-90.140] },
-  { name:"IL Rte. 3 at Sauget",               crashes:29, ll:[38.588,-90.170] },
-  { name:"I-64 at Green Mount interchange",   crashes:26, ll:[38.532,-89.928] },
-  { name:"I-44 at Six Flags",                 crashes:24, ll:[38.510,-90.660] },
-  { name:"Hall St. at Grand Ave.",            crashes:22, ll:[38.679,-90.202] },
-  { name:"Merchants Bridge approach",         crashes:18, ll:[38.652,-90.185] },
+  { name:"I-55 / I-44 downtown split",      crashes:51, ll:[38.612,-90.212] },
+  { name:"I-270 at Riverview Dr. weave",    crashes:42, ll:[38.780,-90.196] },
+  { name:"I-70 at Blanchette Bridge",       crashes:38, ll:[38.782,-90.500] },
+  { name:"Chain of Rocks Canal bridge",     crashes:34, ll:[38.755,-90.128] },
+  { name:"I-255 at Davis Street Ferry Rd.", crashes:31, ll:[38.462,-90.140] },
+  { name:"IL Rte. 3 at Sauget",             crashes:29, ll:[38.588,-90.170] },
+  { name:"I-64 at Green Mount interchange", crashes:26, ll:[38.532,-89.928] },
+  { name:"I-44 at Six Flags",               crashes:24, ll:[38.510,-90.660] },
+  { name:"Hall St. at Grand Ave.",          crashes:22, ll:[38.679,-90.202] },
+  { name:"Merchants Bridge approach",       crashes:18, ll:[38.652,-90.185] },
 ];
 
 const MILESTONES = ["Concept", "Study", "Engineering", "Right of way", "Funding secured", "Letting", "Construction", "Open"];
 
-const CHANGES = [
-  { y:"2026", t:"Added",   p:"I-44 improvements, Oklahoma state line through Franklin County", n:"New entry at $200M regional share" },
-  { y:"2026", t:"Moved",   p:"Merchants Bridge replacement", n:"Partially funded to completed" },
-  { y:"2026", t:"Revised", p:"I-270, I-70 to IL Rte. 157", n:"Programme cost restated to $1.2B across eight segments" },
-  { y:"2025", t:"Moved",   p:"I-55 improvements, Rte. Z to U.S. Rte. 67", n:"Fully funded, construction underway" },
-  { y:"2025", t:"Added",   p:"New terminal, Lambert International Airport", n:"Entered concept development at $3B" },
-];
-
 /* ================================================================== *
- *  4. HELPERS AND THE SCORING ENGINE                                  *
+ *  5. HELPERS AND THE SCORING ENGINE                                  *
  * ================================================================== */
 
 const SCALE = ["#06403C", "#0E7C72", "#17968B", "#4FBBAC", "#8FD3C8", "#C2DAD5", "#E6F1EE"];
@@ -514,40 +536,57 @@ const PHASE_COLOR = {
   Partial: "#4FBBAC", Unfunded: "#7FA7A1", Study: "#9BB3AF",
 };
 
-function scoreOf(p, weights) {
+const statusOf = (p) => p.awarded ? "awarded" : p.applied ? "applied" : "eligible";
+
+/* Criterion value for a project. Criteria added in-session have no
+   scored value yet and sit at the neutral midpoint. */
+const NEUTRAL = 50;
+const valueOf = (p, c) => (c.mi === null || c.mi === undefined) ? NEUTRAL : (p.m[c.mi] || 0);
+
+function scoreOf(p, weights, criteria) {
   let s = 0, tw = 0;
-  CRITERIA.forEach((c, i) => { s += (p.m[i] || 0) * weights[c.key]; tw += weights[c.key]; });
+  criteria.forEach((c) => { s += valueOf(p, c) * (weights[c.key] || 0); tw += (weights[c.key] || 0); });
   return tw === 0 ? 0 : s / tw;
 }
-function valueIndex(p, weights) {
+function valueIndex(p, weights, criteria) {
   const g = gapOf(p);
-  if (g <= 0) return scoreOf(p, weights);
-  return (scoreOf(p, weights) * 100) / Math.max(g, 1);
+  if (g <= 0) return scoreOf(p, weights, criteria);
+  return (scoreOf(p, weights, criteria) * 100) / Math.max(g, 1);
 }
-function rankValue(p, weights, basis) {
-  return basis === "benefit" ? scoreOf(p, weights) : valueIndex(p, weights);
+function rankValue(p, weights, criteria, basis) {
+  return basis === "benefit" ? scoreOf(p, weights, criteria) : valueIndex(p, weights, criteria);
 }
 
-/* Knapsack over unfunded gaps, $5M granularity. */
-function selectPortfolio(items, budgetM, weights) {
-  const G = 5, B = Math.max(0, Math.floor(budgetM / G));
-  const costs = items.map((p) => Math.max(1, Math.round(gapOf(p) / G)));
-  const vals = items.map((p) => scoreOf(p, weights));
-  const dp = new Float64Array(B + 1);
-  const keep = [];
-  for (let i = 0; i < items.length; i++) {
-    const row = new Uint8Array(B + 1), ci = costs[i], vi = vals[i];
-    for (let b = B; b >= ci; b--) {
-      const cand = dp[b - ci] + vi;
-      if (cand > dp[b] + 1e-9) { dp[b] = cand; row[b] = 1; }
-    }
-    keep.push(row);
+/* Weights always total 100. Setting one redistributes the rest in
+   proportion, then integer rounding drift is absorbed by the largest. */
+function rebalance(weights, criteria, key, v) {
+  const keys = criteria.map((c) => c.key);
+  if (keys.length === 1) return { [keys[0]]: 100 };
+  const capped = Math.max(0, Math.min(100, Math.round(v)));
+  const others = keys.filter((k) => k !== key);
+  const rem = 100 - capped;
+  const sum = others.reduce((a, k) => a + (weights[k] || 0), 0);
+  const out = { [key]: capped };
+  others.forEach((k) => {
+    out[k] = sum <= 0 ? rem / others.length : ((weights[k] || 0) / sum) * rem;
+  });
+  return roundTo100(out, keys, key);
+}
+
+function roundTo100(raw, keys, pin) {
+  const out = {};
+  keys.forEach((k) => { out[k] = Math.max(0, Math.round(raw[k] || 0)); });
+  let drift = 100 - keys.reduce((a, k) => a + out[k], 0);
+  const order = keys.filter((k) => k !== pin).sort((a, b) => out[b] - out[a]);
+  let i = 0;
+  while (drift !== 0 && order.length) {
+    const k = order[i % order.length];
+    if (drift > 0) { out[k] += 1; drift -= 1; }
+    else if (out[k] > 0) { out[k] -= 1; drift += 1; }
+    i += 1;
+    if (i > 400) break;
   }
-  let b = B; const chosen = new Set();
-  for (let i = items.length - 1; i >= 0; i--) {
-    if (keep[i] && keep[i][b]) { chosen.add(items[i].id); b -= costs[i]; }
-  }
-  return { chosen };
+  return out;
 }
 
 function milestoneIndex(p) {
@@ -562,10 +601,81 @@ function milestoneIndex(p) {
 }
 
 /* ================================================================== *
- *  5. SMALL PRESENTATIONAL PIECES                                     *
+ *  6. HOVER TOOLTIP INFRASTRUCTURE                                    *
  * ================================================================== */
 
-function Ribbon({ project, height = 6, weights, rank }) {
+const TipCtx = React.createContext(null);
+const useTip = () => React.useContext(TipCtx);
+
+function TipProvider({ children }) {
+  const [tip, setTip] = useState(null);
+  const api = useMemo(() => ({
+    show: (node, e) => setTip({ node, x: e.clientX, y: e.clientY }),
+    move: (e) => setTip((t) => (t ? { ...t, x: e.clientX, y: e.clientY } : t)),
+    hide: () => setTip(null),
+  }), []);
+  let style = null;
+  if (tip) {
+    const vw = typeof window !== "undefined" ? window.innerWidth : 1200;
+    const vh = typeof window !== "undefined" ? window.innerHeight : 800;
+    const flipX = tip.x > vw - 300, flipY = tip.y > vh - 190;
+    style = {
+      left: flipX ? undefined : tip.x + 14,
+      right: flipX ? vw - tip.x + 14 : undefined,
+      top: flipY ? undefined : tip.y + 14,
+      bottom: flipY ? vh - tip.y + 14 : undefined,
+    };
+  }
+  return (
+    <TipCtx.Provider value={api}>
+      {children}
+      {tip && <div className="tip" style={style} role="tooltip">{tip.node}</div>}
+    </TipCtx.Provider>
+  );
+}
+
+function hoverProps(tip, build) {
+  if (!tip) return {};
+  return {
+    onMouseEnter: (e) => tip.show(build(), e),
+    onMouseMove: (e) => tip.move(e),
+    onMouseLeave: () => tip.hide(),
+  };
+}
+
+const TipRow = ({ k, v }) => <span className="tip-r"><span>{k}</span><span>{v}</span></span>;
+
+function ProjectTip({ p, weights, criteria, rank, extra }) {
+  const g = gapOf(p);
+  return (
+    <>
+      <span className="tip-t">{p.name}</span>
+      <span className="tip-s">{p.state === "MO-IL" ? "Bi-state" : p.state} &middot; {p.mode} &middot; {p.phase}</span>
+      <TipRow k="Total cost" v={money(p.cost)} />
+      <TipRow k="Committed" v={money(p.funded)} />
+      <TipRow k="Gap" v={g > 0 ? money(g) : "none"} />
+      <span className="tip-bar">
+        <span style={{ width: (p.funded / (p.cost || 1)) * 100 + "%", background: "#4FD5C4" }} />
+      </span>
+      <div className="tip-rule" />
+      {criteria ? <TipRow k="Composite score" v={scoreOf(p, weights, criteria).toFixed(1)} /> : null}
+      {rank ? <TipRow k="Rank" v={"#" + rank} /> : null}
+      <TipRow k="Awarded" v={p.awarded ? p.awarded : "\u2014"} />
+      <TipRow k="Applied to" v={p.applied ? p.applied : "\u2014"} />
+      <TipRow k="Eligible" v={p.eligible.join(", ") || "\u2014"} />
+      <TipRow k="Next step" v={p.milestone} />
+      <TipRow k="Due" v={p.msDate} />
+      {extra}
+      <span className="tip-f">{p.agency}</span>
+    </>
+  );
+}
+
+/* ================================================================== *
+ *  7. SMALL PRESENTATIONAL PIECES                                     *
+ * ================================================================== */
+
+function Ribbon({ project, height = 6, weights, criteria, rank }) {
   const tip = useTip();
   const total = project.cost || 1;
   const done = project.phase === "Complete" ? project.funded : 0;
@@ -574,7 +684,7 @@ function Ribbon({ project, height = 6, weights, rank }) {
   const seg = (v, color, title) => v <= 0 ? null :
     <span style={{ width: (v / total) * 100 + "%", background: color, height }} title={title} />;
   const hover = weights ? hoverProps(tip, () => (
-    <ProjectTip p={project} weights={weights} rank={rank} />
+    <ProjectTip p={project} weights={weights} criteria={criteria} rank={rank} />
   )) : {};
   return (
     <span className="ribbon" style={{ height }} {...hover}>
@@ -606,81 +716,25 @@ function Legend({ items }) {
   );
 }
 
-/* ================================================================== *
- *  6. HOVER TOOLTIP INFRASTRUCTURE                                    *
- * ================================================================== */
-
-const TipCtx = React.createContext(null);
-const useTip = () => React.useContext(TipCtx);
-
-function TipProvider({ children }) {
-  const [tip, setTip] = useState(null);
-  const api = useMemo(() => ({
-    show: (node, e) => setTip({ node, x: e.clientX, y: e.clientY }),
-    move: (e) => setTip((t) => (t ? { ...t, x: e.clientX, y: e.clientY } : t)),
-    hide: () => setTip(null),
-  }), []);
-  let style = null;
-  if (tip) {
-    const vw = typeof window !== "undefined" ? window.innerWidth : 1200;
-    const vh = typeof window !== "undefined" ? window.innerHeight : 800;
-    const flipX = tip.x > vw - 300;
-    const flipY = tip.y > vh - 190;
-    style = {
-      left: flipX ? undefined : tip.x + 14,
-      right: flipX ? vw - tip.x + 14 : undefined,
-      top: flipY ? undefined : tip.y + 14,
-      bottom: flipY ? vh - tip.y + 14 : undefined,
-    };
-  }
+/* Programme code chip with a hover expansion of the full name. */
+function Code({ code, kind }) {
+  const tip = useTip();
   return (
-    <TipCtx.Provider value={api}>
-      {children}
-      {tip && <div className="tip" style={style} role="tooltip">{tip.node}</div>}
-    </TipCtx.Provider>
-  );
-}
-
-/* Attach hover handlers to any SVG shape. `build` returns the tooltip body. */
-function hoverProps(tip, build) {
-  if (!tip) return {};
-  return {
-    onMouseEnter: (e) => tip.show(build(), e),
-    onMouseMove: (e) => tip.move(e),
-    onMouseLeave: () => tip.hide(),
-  };
-}
-
-const TipRow = ({ k, v }) => <span className="tip-r"><span>{k}</span><span>{v}</span></span>;
-
-/* Full project card, used by the scatter and anywhere a project is hovered. */
-function ProjectTip({ p, weights, rank, extra }) {
-  const g = gapOf(p);
-  return (
-    <>
-      <span className="tip-t">{p.name}</span>
-      <span className="tip-s">{p.state === "MO-IL" ? "Bi-state" : p.state} &middot; {p.mode} &middot; {p.phase}</span>
-      <TipRow k="Total cost" v={money(p.cost)} />
-      <TipRow k="Committed" v={money(p.funded)} />
-      <TipRow k="Gap" v={g > 0 ? money(g) : "none"} />
-      <span className="tip-bar">
-        <span style={{ width: (p.funded / (p.cost || 1)) * 100 + "%", background: "#4FD5C4" }} />
-      </span>
-      <div className="tip-rule" />
-      <TipRow k="Composite score" v={scoreOf(p, weights).toFixed(1)} />
-      {rank ? <TipRow k="Rank" v={"#" + rank} /> : null}
-      <TipRow k="Programme" v={p.grant} />
-      <TipRow k="Application" v={p.grantStatus} />
-      <TipRow k="Next step" v={p.milestone} />
-      <TipRow k="Due" v={p.msDate} />
-      {extra}
-      <span className="tip-f">{p.agency} &middot; select to open the record</span>
-    </>
+    <span className={"code" + (kind ? " " + kind : "")}
+      {...hoverProps(tip, () => (
+        <>
+          <span className="tip-t">{code}</span>
+          <span className="tip-s">
+            {kind === "aw" ? "Awarded" : kind === "ap" ? "Application submitted" : "Eligible"}
+          </span>
+          {PROGRAMS[code] || "Programme"}
+        </>
+      ))}>{code}</span>
   );
 }
 
 /* ================================================================== *
- *  7. CHARTS                                                          *
+ *  8. CHARTS                                                          *
  * ================================================================== */
 
 function ChartFrame({ title, sub, children, legend }) {
@@ -694,8 +748,6 @@ function ChartFrame({ title, sub, children, legend }) {
   );
 }
 
-/* Horizontal stacked bars.
-   rows: [{label, total, parts:[{name,v,color}], tip?}]  tip() overrides the body. */
 function StackedBars({ rows, maxV, fmt, unit }) {
   const tip = useTip();
   const rowH = 26, padL = 92, padR = 60, W = 460;
@@ -722,7 +774,7 @@ function StackedBars({ rows, maxV, fmt, unit }) {
               const w = (pt.v / maxV) * inner, x = padL + acc;
               acc += w;
               if (pt.v <= 0) return null;
-              const body = () => r.tip ? r.tip(pt) : (
+              const body = () => (
                 <>
                   <span className="tip-t">{r.full || r.label}</span>
                   <span className="tip-s">{pt.name}</span>
@@ -747,14 +799,13 @@ function StackedBars({ rows, maxV, fmt, unit }) {
   );
 }
 
-/* Benefit against cost. Bubble area is the unfunded gap. */
-function Scatter({ items, weights, ranks, onOpen }) {
+function Scatter({ items, weights, criteria, ranks, onOpen }) {
   const tip = useTip();
   const W = 460, H = 250, padL = 40, padB = 30, padT = 10, padR = 12;
   const iw = W - padL - padR, ih = H - padB - padT;
   const maxC = Math.max(...items.map((p) => p.cost), 1);
   const lx = (c) => padL + (Math.log10(Math.max(c, 1) + 1) / Math.log10(maxC + 1)) * iw;
-  const scores = items.map((p) => scoreOf(p, weights));
+  const scores = items.map((p) => scoreOf(p, weights, criteria));
   const lo = Math.min(...scores) - 3, hi = Math.max(...scores) + 3;
   const ly = (s) => padT + ih - ((s - lo) / (hi - lo)) * ih;
   const maxG = Math.max(...items.map(gapOf), 1);
@@ -780,8 +831,8 @@ function Scatter({ items, weights, ranks, onOpen }) {
             fill={PHASE_COLOR[p.phase]} fillOpacity=".72" stroke="#fff" strokeWidth="1"
             onClick={() => { tip && tip.hide(); onOpen(p.id); }}
             {...hoverProps(tip, () => (
-              <ProjectTip p={p} weights={weights} rank={ranks ? ranks[p.id] : null}
-                extra={<TipRow k="Benefit per $100M gap" v={valueIndex(p, weights).toFixed(1)} />} />
+              <ProjectTip p={p} weights={weights} criteria={criteria} rank={ranks ? ranks[p.id] : null}
+                extra={<TipRow k="Benefit per $100M gap" v={valueIndex(p, weights, criteria).toFixed(1)} />} />
             ))} />
         );
       })}
@@ -789,26 +840,27 @@ function Scatter({ items, weights, ranks, onOpen }) {
   );
 }
 
-/* Score composition: stacked contribution of each criterion. */
-function Composition({ items, weights, ranks, onOpen }) {
+function Composition({ items, weights, criteria, ranks, onOpen }) {
   const tip = useTip();
-  const tw = Object.values(weights).reduce((a, b) => a + b, 0) || 1;
+  const tw = criteria.reduce((a, c) => a + (weights[c.key] || 0), 0) || 1;
   const rowH = 24, padL = 128, W = 460, H = items.length * rowH + 16;
   const inner = W - padL - 40;
-  const maxTotal = Math.max(...items.map((p) => scoreOf(p, weights)), 1);
+  const maxTotal = Math.max(...items.map((p) => scoreOf(p, weights, criteria)), 1);
   return (
     <svg viewBox={"0 0 " + W + " " + H} role="img">
       {items.map((p, i) => {
         let acc = 0;
-        const totalScore = scoreOf(p, weights);
+        const totalScore = scoreOf(p, weights, criteria);
         return (
           <g key={p.id} transform={"translate(0 " + i * rowH + ")"}>
             <text className="bar-label" x={padL - 8} y={rowH / 2 + 4} textAnchor="end"
-              {...hoverProps(tip, () => <ProjectTip p={p} weights={weights} rank={ranks ? ranks[p.id] : null} />)}>
+              {...hoverProps(tip, () => (
+                <ProjectTip p={p} weights={weights} criteria={criteria} rank={ranks ? ranks[p.id] : null} />
+              ))}>
               {p.name.length > 24 ? p.name.slice(0, 23) + "\u2026" : p.name}
             </text>
-            {CRITERIA.map((c, j) => {
-              const contrib = (p.m[j] * weights[c.key]) / tw;
+            {criteria.map((c, j) => {
+              const contrib = (valueOf(p, c) * (weights[c.key] || 0)) / tw;
               const w = (contrib / maxTotal) * inner, x = padL + acc;
               acc += w;
               if (w <= 0.4) return null;
@@ -820,8 +872,8 @@ function Composition({ items, weights, ranks, onOpen }) {
                     <>
                       <span className="tip-t">{p.name}</span>
                       <span className="tip-s">{c.label}</span>
-                      <TipRow k="Raw criterion value" v={p.m[j] + " / 100"} />
-                      <TipRow k="Weight" v={weights[c.key] + " of " + tw} />
+                      <TipRow k="Criterion value" v={valueOf(p, c) + " / 100"} />
+                      <TipRow k="Weight" v={(weights[c.key] || 0) + " of 100"} />
                       <TipRow k="Contribution" v={contrib.toFixed(1) + " pts"} />
                       <TipRow k="Share of score" v={((contrib / (totalScore || 1)) * 100).toFixed(0) + "%"} />
                       <div className="tip-rule" />
@@ -841,7 +893,6 @@ function Composition({ items, weights, ranks, onOpen }) {
   );
 }
 
-/* Donut. parts: [{name, v, color, items?}] */
 function Donut({ parts, centreLabel, centreValue, fmt, unit }) {
   const tip = useTip();
   const f = fmt || ((v) => String(v));
@@ -891,10 +942,10 @@ function Donut({ parts, centreLabel, centreValue, fmt, unit }) {
 }
 
 /* ================================================================== *
- *  7. PORTFOLIO                                                       *
+ *  9. PORTFOLIO                                                       *
  * ================================================================== */
 
-function Overview({ tops, weights, ranks, onOpen }) {
+function Overview({ tops, weights, criteria, ranks, onOpen }) {
   const total = tops.reduce((a, p) => a + p.cost, 0);
   const funded = tops.reduce((a, p) => a + p.funded, 0);
   const complete = tops.filter((p) => p.phase === "Complete").reduce((a, p) => a + p.cost, 0);
@@ -917,13 +968,10 @@ function Overview({ tops, weights, ranks, onOpen }) {
 
   const phaseParts = PHASES.map((ph) => {
     const set = tops.filter((p) => p.phase === ph);
-    return {
-      name: ph, v: set.reduce((a, p) => a + p.cost, 0),
-      color: PHASE_COLOR[ph], items: set.map((p) => p.name),
-    };
+    return { name: ph, v: set.reduce((a, p) => a + p.cost, 0), color: PHASE_COLOR[ph], items: set.map((p) => p.name) };
   }).filter((p) => p.v > 0);
 
-  const topScored = [...tops].sort((a, b) => scoreOf(b, weights) - scoreOf(a, weights)).slice(0, 8);
+  const topScored = [...tops].sort((a, b) => scoreOf(b, weights, criteria) - scoreOf(a, weights, criteria)).slice(0, 8);
   const biggestGaps = [...tops].sort((a, b) => gapOf(b) - gapOf(a)).slice(0, 8);
 
   return (
@@ -936,6 +984,11 @@ function Overview({ tops, weights, ranks, onOpen }) {
           project shows what is built, what is committed, and what is still being
           asked for.
         </p>
+        <p className="demo-note">
+          Everything shown on this dashboard is demonstration data, assembled to
+          illustrate how the tool behaves. No figure here should be quoted as a
+          regional number.
+        </p>
       </header>
 
       <div className="stat-row">
@@ -946,36 +999,26 @@ function Overview({ tops, weights, ranks, onOpen }) {
       </div>
 
       <div className="chart-grid">
-        <ChartFrame
-          title="Investment by mode"
-          sub="Committed against the remaining gap"
-          legend={[{ label: "Committed", color: "#17968B" }, { label: "Gap", color: "#C2DAD5" }]}
-        >
+        <ChartFrame title="Investment by mode" sub="Committed against the remaining gap"
+          legend={[{ label: "Committed", color: "#17968B" }, { label: "Gap", color: "#C2DAD5" }]}>
           <StackedBars rows={modeRows} maxV={maxMode} fmt={money} unit="Investment" />
         </ChartFrame>
 
-        <ChartFrame
-          title="Programme by delivery status"
-          sub="Share of total cost"
-          legend={phaseParts.map((p) => ({ label: p.name, color: p.color }))}
-        >
-          <Donut parts={phaseParts} centreValue={money(total)} centreLabel="TOTAL" fmt={money} unit="Share of programme cost" />
+        <ChartFrame title="Programme by delivery status" sub="Share of total cost"
+          legend={phaseParts.map((p) => ({ label: p.name, color: p.color }))}>
+          <Donut parts={phaseParts} centreValue={money(total)} centreLabel="TOTAL"
+            fmt={money} unit="Share of programme cost" />
         </ChartFrame>
 
-        <ChartFrame
-          title="Benefit against cost"
-          sub="Bubble size is the unfunded gap. Hover for the project, select to open the record."
-          legend={PHASES.filter((p) => tops.some((t) => t.phase === p)).map((p) => ({ label: p, color: PHASE_COLOR[p] }))}
-        >
-          <Scatter items={tops} weights={weights} ranks={ranks} onOpen={onOpen} />
+        <ChartFrame title="Benefit against cost" sub="Bubble size is the unfunded gap"
+          legend={PHASES.filter((p) => tops.some((t) => t.phase === p)).map((p) => ({ label: p, color: PHASE_COLOR[p] }))}>
+          <Scatter items={tops} weights={weights} criteria={criteria} ranks={ranks} onOpen={onOpen} />
         </ChartFrame>
 
-        <ChartFrame
-          title="What drives the top scores"
-          sub="Weighted contribution of each criterion. Hover a band for the underlying value."
-          legend={CRITERIA.slice(0, 4).map((c, i) => ({ label: c.label.split(" ")[0], color: SCALE[i] }))}
-        >
-          <Composition items={topScored} weights={weights} ranks={ranks} onOpen={onOpen} />
+        <ChartFrame title="What drives the top scores"
+          sub="Weighted contribution of each criterion, highest-scoring eight"
+          legend={criteria.slice(0, 4).map((c, i) => ({ label: c.label.split(" ")[0], color: SCALE[i] }))}>
+          <Composition items={topScored} weights={weights} criteria={criteria} ranks={ranks} onOpen={onOpen} />
         </ChartFrame>
       </div>
 
@@ -989,7 +1032,7 @@ function Overview({ tops, weights, ranks, onOpen }) {
             <li key={p.id}>
               <button className="gap-item" onClick={() => onOpen(p.id)}>
                 <span className="gap-name">{p.name}</span>
-                <Ribbon project={p} height={5} weights={weights} rank={ranks ? ranks[p.id] : null} />
+                <Ribbon project={p} height={5} weights={weights} criteria={criteria} rank={ranks[p.id]} />
                 <span className="gap-num">{money(gapOf(p))}</span>
               </button>
             </li>
@@ -1001,10 +1044,10 @@ function Overview({ tops, weights, ranks, onOpen }) {
 }
 
 /* ================================================================== *
- *  8. REGISTER                                                        *
+ *  10. REGISTER                                                       *
  * ================================================================== */
 
-function Register({ rows, filters, setFilters, onOpen, weights, ranks }) {
+function Register({ rows, filters, setFilters, onOpen, weights, criteria, ranks }) {
   const [expanded, setExpanded] = useState(() => new Set(["R1", "R2", "R11"]));
   const toggle = (id) => {
     const n = new Set(expanded);
@@ -1078,8 +1121,11 @@ function Register({ rows, filters, setFilters, onOpen, weights, ranks }) {
                   <td className="c-num">{money(p.cost)}</td>
                   <td className="c-num">{money(p.funded)}</td>
                   <td className="c-num gap">{gapOf(p) > 0 ? money(gapOf(p)) : "\u2014"}</td>
-                  <td className="c-rib"><Ribbon project={p} weights={weights} rank={p.parent ? null : ranks[p.id]} /></td>
-                  <td className="c-num">{scoreOf(p, weights).toFixed(1)}</td>
+                  <td className="c-rib">
+                    <Ribbon project={p} weights={weights} criteria={criteria}
+                      rank={p.parent ? null : ranks[p.id]} />
+                  </td>
+                  <td className="c-num">{scoreOf(p, weights, criteria).toFixed(1)}</td>
                   <td className="c-num">{p.parent ? "\u2014" : (ranks[p.id] || "\u2014")}</td>
                 </tr>
               );
@@ -1102,26 +1148,43 @@ function Register({ rows, filters, setFilters, onOpen, weights, ranks }) {
 }
 
 /* ================================================================== *
- *  9. SCORING AND RANKING ENGINE                                      *
+ *  11. SCORING AND RANKING ENGINE                                     *
  * ================================================================== */
 
-function Scoring({ weights, setWeights, basis, setBasis, tops, onOpen, baseRanks }) {
+function Scoring({ weights, setWeight, criteria, addCriterion, removeCriterion, resetCriteria,
+                   basis, setBasis, tops, onOpen, baseRanks }) {
   const tip = useTip();
-  const total = Object.values(weights).reduce((a, b) => a + b, 0);
-  const ordered = [...tops].sort((a, b) => rankValue(b, weights, basis) - rankValue(a, weights, basis));
+  const [newLabel, setNewLabel] = useState("");
+  const [newUnit, setNewUnit] = useState("");
+  const total = criteria.reduce((a, c) => a + (weights[c.key] || 0), 0);
+  const ordered = [...tops].sort((a, b) =>
+    rankValue(b, weights, criteria, basis) - rankValue(a, weights, criteria, basis));
 
   const stress = useMemo(() => {
     const counts = {}; const N = 120;
     for (let r = 0; r < N; r++) {
       const w = {};
-      CRITERIA.forEach((c) => { w[c.key] = Math.max(0, weights[c.key] + (Math.random() * 20 - 10)); });
-      [...tops].sort((a, b) => rankValue(b, w, basis) - rankValue(a, w, basis))
+      criteria.forEach((c) => { w[c.key] = Math.max(0, (weights[c.key] || 0) + (Math.random() * 20 - 10)); });
+      [...tops].sort((a, b) => rankValue(b, w, criteria, basis) - rankValue(a, w, criteria, basis))
         .slice(0, 10).forEach((p) => { counts[p.id] = (counts[p.id] || 0) + 1; });
     }
     const out = {};
     Object.keys(counts).forEach((k) => { out[k] = counts[k] / N; });
     return out;
-  }, [weights, tops, basis]);
+  }, [weights, tops, basis, criteria]);
+
+  const tiers = [
+    { key: "core", label: "Core criteria" },
+    { key: "supporting", label: "Supporting criteria" },
+    { key: "added", label: "Added in this session" },
+  ].filter((t) => criteria.some((c) => c.tier === t.key));
+
+  const submit = () => {
+    const l = newLabel.trim();
+    if (!l) return;
+    addCriterion(l, newUnit.trim());
+    setNewLabel(""); setNewUnit("");
+  };
 
   return (
     <div className="screen">
@@ -1129,10 +1192,8 @@ function Scoring({ weights, setWeights, basis, setBasis, tops, onOpen, baseRanks
         <div className="eyebrow">Method</div>
         <h1>Scoring and ranking engine</h1>
         <p className="lede">
-          The Task 5 selection criteria with adjustable weights. Composite score
-          and rank recalculate as weights move. Positions that survive only one
-          weighting are flagged, so the committee can see which parts of the
-          ranking are robust.
+          The selection criteria with adjustable weights. Composite score and rank
+          recalculate as weights move, and the weights always total 100.
         </p>
       </header>
 
@@ -1141,19 +1202,52 @@ function Scoring({ weights, setWeights, basis, setBasis, tops, onOpen, baseRanks
           <div className="panel">
             <div className="panel-head">
               <h2>Criterion weights</h2>
-              <span className="panel-note">Sum {total}</span>
+              <span className="wsum panel-note">Total <strong>{total}</strong> / 100</span>
             </div>
-            {CRITERIA.map((c) => (
-              <div key={c.key} className="weight-row">
-                <div className="weight-top">
-                  <label htmlFor={"w-" + c.key}>{c.label}</label>
-                  <span className="weight-num">{weights[c.key]}</span>
-                </div>
-                <input id={"w-" + c.key} type="range" min="0" max="40" value={weights[c.key]}
-                  onChange={(e) => setWeights({ ...weights, [c.key]: Number(e.target.value) })} />
-                <div className="weight-unit">{c.unit}</div>
+
+            {tiers.map((t) => (
+              <div key={t.key}>
+                <p className="crit-tier">{t.label}</p>
+                {criteria.filter((c) => c.tier === t.key).map((c) => (
+                  <div key={c.key} className="weight-row">
+                    <div className="weight-top">
+                      <label htmlFor={"w-" + c.key}>{c.label}</label>
+                      <span>
+                        <span className="weight-num">{weights[c.key] || 0}</span>
+                        {c.tier === "added" && (
+                          <button className="del" onClick={() => removeCriterion(c.key)}
+                            aria-label={"Remove " + c.label}>&times;</button>
+                        )}
+                      </span>
+                    </div>
+                    <input id={"w-" + c.key} type="range" min="0" max="100" value={weights[c.key] || 0}
+                      onChange={(e) => setWeight(c.key, Number(e.target.value))} />
+                    <div className="weight-unit">
+                      {c.unit}
+                      {c.mi === null ? " \u00b7 no scored values yet, held at the neutral midpoint" : ""}
+                    </div>
+                  </div>
+                ))}
               </div>
             ))}
+
+            <div className="addbox">
+              <span className="field-label">Add a criterion</span>
+              <input value={newLabel} onChange={(e) => setNewLabel(e.target.value)}
+                placeholder="Criterion name" onKeyDown={(e) => { if (e.key === "Enter") submit(); }} />
+              <input value={newUnit} onChange={(e) => setNewUnit(e.target.value)}
+                placeholder="What it measures" onKeyDown={(e) => { if (e.key === "Enter") submit(); }} />
+              <div className="row">
+                <button className="solid" onClick={submit} disabled={!newLabel.trim()}>Add criterion</button>
+                <button className="ghost" onClick={resetCriteria}>Reset to default set</button>
+              </div>
+              <p className="hint" style={{ margin: 0 }}>
+                A new criterion takes its weight from the others in proportion. Until
+                projects are scored against it, every project sits at the neutral
+                midpoint, so it dilutes the other criteria rather than reordering.
+              </p>
+            </div>
+
             <div style={{ marginTop: 16 }}>
               <span className="field-label">Rank projects by</span>
               <div className="seg">
@@ -1166,8 +1260,8 @@ function Scoring({ weights, setWeights, basis, setBasis, tops, onOpen, baseRanks
               </div>
               <p className="hint">
                 Ranking on benefit alone puts the megaprojects on top. Ranking on
-                benefit per dollar still being asked for moves small, ready
-                projects up. This is the trade-off to settle before the weights.
+                benefit per dollar still being asked for moves small, ready projects
+                up. This is the trade-off to settle before the weights.
               </p>
             </div>
           </div>
@@ -1176,7 +1270,7 @@ function Scoring({ weights, setWeights, basis, setBasis, tops, onOpen, baseRanks
         <div className="panel">
           <div className="panel-head">
             <h2>Composite ranking</h2>
-            <span className="panel-note">Movement shown against the adopted 2026 weights</span>
+            <span className="panel-note">Movement shown against the default weights</span>
           </div>
           <ol className="rank-list">
             {ordered.map((p, i) => {
@@ -1186,15 +1280,17 @@ function Scoring({ weights, setWeights, basis, setBasis, tops, onOpen, baseRanks
                 <li key={p.id}>
                   <button className="rank-item" onClick={() => onOpen(p.id)}
                     {...hoverProps(tip, () => (
-                      <ProjectTip p={p} weights={weights} rank={i + 1}
-                        extra={<TipRow k="Benefit per $100M gap" v={valueIndex(p, weights).toFixed(1)} />} />
+                      <ProjectTip p={p} weights={weights} criteria={criteria} rank={i + 1}
+                        extra={<TipRow k="Benefit per $100M gap" v={valueIndex(p, weights, criteria).toFixed(1)} />} />
                     ))}>
                     <span className="rank-no">{String(i + 1).padStart(2, "0")}</span>
                     <span className="rank-name">{p.name}
-                      <span className="rank-meta">{money(p.cost)} &middot; {p.mode} &middot; {p.state} &middot; {p.agency}</span>
+                      <span className="rank-meta">
+                        {money(p.cost)} &middot; {p.mode} &middot; {p.state} &middot; {p.agency}
+                      </span>
                     </span>
                     <span className="rank-right">
-                      <span className="rank-score">{rankValue(p, weights, basis).toFixed(1)}</span>
+                      <span className="rank-score">{rankValue(p, weights, criteria, basis).toFixed(1)}</span>
                       {move !== 0 && (
                         <span className={"move " + (move > 0 ? "up" : "down")}>
                           {move > 0 ? "\u25B2" : "\u25BC"} {Math.abs(move)}
@@ -1216,183 +1312,22 @@ function Scoring({ weights, setWeights, basis, setBasis, tops, onOpen, baseRanks
 }
 
 /* ================================================================== *
- *  10. SCENARIOS                                                      *
- * ================================================================== */
-
-function Optimizer({ tops, weights, onOpen }) {
-  const tip = useTip();
-  const candidates = useMemo(() => tops.filter((p) => gapOf(p) > 0 && p.phase !== "Study"), [tops]);
-  const maxGap = candidates.reduce((a, p) => a + gapOf(p), 0);
-  const [budget, setBudget] = useState(1500);
-  const [balance, setBalance] = useState(false);
-  const [locked, setLocked] = useState(() => new Set());
-  const [excluded, setExcluded] = useState(() => new Set());
-
-  const run = useCallback((b) => {
-    const pool = candidates.filter((p) => !excluded.has(p.id) && !locked.has(p.id));
-    const lockCost = candidates.filter((p) => locked.has(p.id)).reduce((a, p) => a + gapOf(p), 0);
-    const remaining = Math.max(0, b - lockCost);
-    const chosen = new Set(locked);
-    if (!balance) {
-      selectPortfolio(pool, remaining, weights).chosen.forEach((id) => chosen.add(id));
-    } else {
-      selectPortfolio(pool.filter((p) => p.state === "MO"), remaining * 0.5, weights).chosen.forEach((id) => chosen.add(id));
-      selectPortfolio(pool.filter((p) => p.state !== "MO"), remaining * 0.5, weights).chosen.forEach((id) => chosen.add(id));
-    }
-    return chosen;
-  }, [candidates, weights, balance, locked, excluded]);
-
-  const chosen = useMemo(() => run(budget), [run, budget]);
-  const selected = candidates.filter((p) => chosen.has(p.id));
-  const spend = selected.reduce((a, p) => a + gapOf(p), 0);
-
-  const frontier = useMemo(() => {
-    const pts = [];
-    for (let i = 0; i <= 16; i++) {
-      const b = (maxGap / 16) * i;
-      const c = run(b);
-      pts.push({ b, v: candidates.filter((p) => c.has(p.id)).reduce((a, p) => a + scoreOf(p, weights), 0) });
-    }
-    return pts;
-  }, [run, maxGap, candidates, weights]);
-
-  const maxV = Math.max(...frontier.map((p) => p.v), 1);
-  const W = 560, H = 170;
-  const path = frontier.map((p, i) => `${i === 0 ? "M" : "L"} ${(p.b / maxGap) * W} ${H - (p.v / maxV) * H}`).join(" ");
-  const curV = selected.reduce((a, p) => a + scoreOf(p, weights), 0);
-  const cur = { x: (Math.min(budget, maxGap) / maxGap) * W, y: H - (curV / maxV) * H };
-
-  const toggleSet = (set, setter, id) => {
-    const n = new Set(set);
-    n.has(id) ? n.delete(id) : n.add(id);
-    setter(n);
-  };
-
-  return (
-    <div className="screen">
-      <header className="screen-head">
-        <div className="eyebrow">Scenario</div>
-        <h1>Budget scenarios</h1>
-        <p className="lede">
-          Given an envelope, the tool picks the set of unfunded gaps that buys the
-          most scored benefit. Lock a project in where a commitment already
-          exists, or exclude one that is not deliverable in the period.
-        </p>
-      </header>
-
-      <div className="panel">
-        <div className="controls">
-          <label className="budget">
-            <span className="field-label">Advocacy envelope</span>
-            <input type="range" min="0" max={Math.round(maxGap)} step="25" value={budget}
-              onChange={(e) => setBudget(Number(e.target.value))} />
-            <output>{money(budget)}</output>
-          </label>
-          <label className="check">
-            <input type="checkbox" checked={balance} onChange={(e) => setBalance(e.target.checked)} />
-            <span>Split the envelope evenly between Missouri and Illinois</span>
-          </label>
-        </div>
-
-        <div className="frontier">
-          <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" role="img" aria-label="Benefit against budget">
-            <path d={path} fill="none" stroke="#0E7C72" strokeWidth="2" vectorEffect="non-scaling-stroke" />
-            <line x1={cur.x} y1="0" x2={cur.x} y2={H} stroke="#06403C" strokeWidth="1"
-              strokeDasharray="4 4" vectorEffect="non-scaling-stroke" />
-            <circle cx={cur.x} cy={cur.y} r="4" fill="#06403C" />
-            {frontier.map((pt, i) => {
-              const seg = W / frontier.length;
-              const picked = candidates.filter((p) => run(pt.b).has(p.id));
-              const prev = i > 0 ? frontier[i - 1] : null;
-              return (
-                <rect key={i} className="hit" x={i * seg} y={0} width={seg} height={H}
-                  fill="transparent"
-                  onClick={() => setBudget(Math.round(pt.b))}
-                  {...hoverProps(tip, () => (
-                    <>
-                      <span className="tip-t">{money(pt.b)} envelope</span>
-                      <span className="tip-s">Point on the benefit curve</span>
-                      <TipRow k="Projects funded" v={picked.length + " of " + candidates.length} />
-                      <TipRow k="Gap covered" v={money(picked.reduce((a, p) => a + gapOf(p), 0))} />
-                      <TipRow k="Benefit purchased" v={pt.v.toFixed(0) + " pts"} />
-                      {prev ? (
-                        <TipRow k="Gained on last step"
-                          v={"+" + (pt.v - prev.v).toFixed(0) + " pts / " + money(pt.b - prev.b)} />
-                      ) : null}
-                      <div className="tip-rule" />
-                      {picked.slice(0, 4).map((p) => (
-                        <TipRow key={p.id} k={p.name.length > 22 ? p.name.slice(0, 21) + "\u2026" : p.name}
-                          v={money(gapOf(p))} />
-                      ))}
-                      {picked.length > 4 ? <span className="tip-f">and {picked.length - 4} more</span> : null}
-                      <span className="tip-f">Select to set the envelope here</span>
-                    </>
-                  ))} />
-              );
-            })}
-          </svg>
-          <div className="frontier-axis">
-            <span>{money(0)}</span>
-            <span>Benefit purchased as the envelope grows</span>
-            <span>{money(maxGap)}</span>
-          </div>
-        </div>
-
-        <div className="scenario-summary">
-          <Stat label="Projects selected" value={selected.length + " of " + candidates.length} />
-          <Stat label="Committed in scenario" value={money(spend)} sub={money(Math.max(0, budget - spend)) + " unspent"} />
-          <Stat label="Gap left on the table" value={money(maxGap - spend)} />
-        </div>
-      </div>
-
-      <div className="panel">
-        <div className="panel-head">
-          <h2>Selection</h2>
-          <span className="panel-note">Sorted by benefit per dollar of gap</span>
-        </div>
-        <ul className="pick-list">
-          {[...candidates].sort((a, b) => valueIndex(b, weights) - valueIndex(a, weights)).map((p) => {
-            const inSet = chosen.has(p.id);
-            return (
-              <li key={p.id} className={inSet ? "picked" : ""}>
-                <span className="pick-mark" aria-hidden="true">{inSet ? "\u25CF" : "\u25CB"}</span>
-                <button className="pick-name link" onClick={() => onOpen(p.id)}>{p.name}</button>
-                <span className="pick-num">{money(gapOf(p))}</span>
-                <span className="pick-eff">{valueIndex(p, weights).toFixed(1)}</span>
-                <span className="pick-actions">
-                  <button className={locked.has(p.id) ? "chip on" : "chip"}
-                    onClick={() => toggleSet(locked, setLocked, p.id)}>Lock in</button>
-                  <button className={excluded.has(p.id) ? "chip on" : "chip"}
-                    onClick={() => toggleSet(excluded, setExcluded, p.id)}>Exclude</button>
-                </span>
-              </li>
-            );
-          })}
-        </ul>
-      </div>
-    </div>
-  );
-}
-
-/* ================================================================== *
- *  11. GIS MAP VIEWER                                                 *
+ *  12. MAP VIEWER                                                     *
  * ================================================================== */
 
 const LAYER_DEFS = [
-  { key:"projects",  label:"Scored and ranked projects", note:"Marker size follows the composite score", src:"Register", demo:false },
-  { key:"corridors", label:"Freight volumes",            note:"Line weight follows truck AADT (Task 3)", src:"Demo data", demo:true },
-  { key:"gateways",  label:"Commodity flows",            note:"Circle area follows annual tonnage (Task 3)", src:"Demo data", demo:true },
-  { key:"isa",       label:"Industrial Site Areas",      note:"Simplified illustrative extents (Task 4)", src:"Demo data", demo:true },
-  { key:"hotspots",  label:"Gaps and high-crash sites",  note:"Truck-involved crash concentrations (Task 5)", src:"Demo data", demo:true },
+  { key:"projects", label:"Scored and ranked projects", note:"Marker size follows the composite score" },
+  { key:"gateways", label:"Commodity flows",            note:"Circle area follows annual tonnage" },
+  { key:"isa",      label:"Industrial Site Areas",      note:"Simplified illustrative extents" },
+  { key:"hotspots", label:"Gaps and high-crash sites",  note:"Truck-involved crash concentrations" },
 ];
 
-function MapView({ tops, weights, ranks, onOpen }) {
+function MapView({ tops, weights, criteria, ranks, onOpen }) {
   const host = useRef(null);
   const mapRef = useRef(null);
   const groups = useRef({});
-  const [ready, setReady] = useState(null); // null = checking, true/false = result
-  const [on, setOn] = useState({ projects:true, corridors:true, gateways:false, isa:true, hotspots:false });
-  const [basemap, setBasemap] = useState("light");
+  const [ready, setReady] = useState(null);
+  const [on, setOn] = useState({ projects: true, gateways: false, isa: true, hotspots: false });
 
   useEffect(() => {
     if (typeof L === "undefined" || !host.current) { setReady(false); return; }
@@ -1400,49 +1335,36 @@ function MapView({ tops, weights, ranks, onOpen }) {
     try {
       map = L.map(host.current, { scrollWheelZoom: false, zoomControl: true }).setView([38.65, -90.22], 9);
       L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png", {
-        attribution: '&copy; OpenStreetMap contributors &copy; CARTO', maxZoom: 18, subdomains: "abcd",
+        attribution: "&copy; OpenStreetMap contributors &copy; CARTO", maxZoom: 18, subdomains: "abcd",
       }).addTo(map);
     } catch (e) { setReady(false); return; }
     mapRef.current = map;
 
     const g = {};
 
-    /* --- Industrial Site Areas --- */
     g.isa = L.layerGroup(ISA_AREAS.map((a) =>
       L.rectangle(a.box, { color:"#0E7C72", weight:1, fillColor:"#4FBBAC", fillOpacity:.18, dashArray:"4 3" })
         .bindPopup('<span class="pop-t">' + a.name + '</span><div class="pop-r"><span>Industrial Site Area</span><span>' + a.acres.toLocaleString() + ' ac</span></div>')
     ));
 
-    /* --- Corridor truck volumes --- */
-    g.corridors = L.layerGroup(CORRIDORS.map((c) =>
-      L.polyline(c.path, { color:"#06403C", weight: 1.5 + (c.aadtt / 15200) * 7, opacity:.62 })
-        .bindPopup('<span class="pop-t">' + c.name + '</span><div class="pop-r"><span>Truck AADT</span><span>' + c.aadtt.toLocaleString() + '</span></div>')
-    ));
-
-    /* --- Commodity flow gateways --- */
     g.gateways = L.layerGroup(GATEWAYS.map((t) =>
-      L.circleMarker(t.ll, {
-        radius: 5 + Math.sqrt(t.mt) * 5, color:"#0E7C72", weight:1.5,
-        fillColor:"#8FD3C8", fillOpacity:.62,
-      }).bindPopup('<span class="pop-t">' + t.name + '</span><div class="pop-r"><span>Annual throughput</span><span>' + t.mt + ' Mt</span></div>')
+      L.circleMarker(t.ll, { radius: 5 + Math.sqrt(t.mt) * 5, color:"#0E7C72", weight:1.5,
+        fillColor:"#8FD3C8", fillOpacity:.62 })
+        .bindPopup('<span class="pop-t">' + t.name + '</span><div class="pop-r"><span>Annual throughput</span><span>' + t.mt + ' Mt</span></div>')
     ));
 
-    /* --- Crash concentrations --- */
     g.hotspots = L.layerGroup(HOTSPOTS.map((h) =>
-      L.circleMarker(h.ll, {
-        radius: 4 + (h.crashes / 51) * 9, color:"#06302D", weight:1,
-        fillColor:"#06302D", fillOpacity:.34,
-      }).bindPopup('<span class="pop-t">' + h.name + '</span><div class="pop-r"><span>Truck-involved crashes, 3 yr</span><span>' + h.crashes + '</span></div>')
+      L.circleMarker(h.ll, { radius: 4 + (h.crashes / 51) * 9, color:"#06302D", weight:1,
+        fillColor:"#06302D", fillOpacity:.34 })
+        .bindPopup('<span class="pop-t">' + h.name + '</span><div class="pop-r"><span>Truck-involved crashes, 3 yr</span><span>' + h.crashes + '</span></div>')
     ));
 
-    /* --- Scored projects --- */
-    const scores = tops.map((p) => scoreOf(p, weights));
+    const scores = tops.map((p) => scoreOf(p, weights, criteria));
     const lo = Math.min(...scores), hi = Math.max(...scores);
     g.projects = L.layerGroup(tops.map((p, i) => {
       const t = hi === lo ? .5 : (scores[i] - lo) / (hi - lo);
       const mk = L.circleMarker([p.lat, p.lng], {
-        radius: 5 + t * 9,
-        color: "#FFFFFF", weight: 1.5,
+        radius: 5 + t * 9, color: "#FFFFFF", weight: 1.5,
         fillColor: PHASE_COLOR[p.phase], fillOpacity: .92,
       });
       mk.bindPopup(
@@ -1466,7 +1388,6 @@ function MapView({ tops, weights, ranks, onOpen }) {
     // eslint-disable-next-line
   }, []);
 
-  // toggle layers
   useEffect(() => {
     const map = mapRef.current, g = groups.current;
     if (!map || !g.projects) return;
@@ -1476,17 +1397,16 @@ function MapView({ tops, weights, ranks, onOpen }) {
     });
   }, [on, ready]);
 
-  // rescale project markers when weights change
   useEffect(() => {
     const g = groups.current;
     if (!g.projects) return;
-    const scores = tops.map((p) => scoreOf(p, weights));
+    const scores = tops.map((p) => scoreOf(p, weights, criteria));
     const lo = Math.min(...scores), hi = Math.max(...scores);
     g.projects.getLayers().forEach((mk, i) => {
       const t = hi === lo ? .5 : (scores[i] - lo) / (hi - lo);
       mk.setRadius(5 + t * 9);
     });
-  }, [weights, tops, ready]);
+  }, [weights, criteria, tops, ready]);
 
   const flip = (k) => setOn({ ...on, [k]: !on[k] });
 
@@ -1508,9 +1428,7 @@ function MapView({ tops, weights, ranks, onOpen }) {
           {LAYER_DEFS.map((l) => (
             <label key={l.key} className="layer">
               <input type="checkbox" checked={on[l.key]} onChange={() => flip(l.key)} disabled={ready === false} />
-              <span>{l.label}<em>{l.note}</em>
-                <span className={l.demo ? "src demo" : "src"}>{l.src}</span>
-              </span>
+              <span>{l.label}<em>{l.note}</em></span>
             </label>
           ))}
           <h3 className="later">Reading the map</h3>
@@ -1532,9 +1450,9 @@ function MapView({ tops, weights, ranks, onOpen }) {
               </p>
               <p>
                 In the built system this panel holds the project points over the
-                Industrial Site Area boundaries, corridor truck volumes, commodity
-                flow gateways, and crash concentrations, served from the region's
-                own ArcGIS services rather than a public tile host.
+                Industrial Site Area boundaries, commodity flow gateways, and crash
+                concentrations, served from the region's own ArcGIS services rather
+                than a public tile host.
               </p>
             </div>
           </div>
@@ -1548,55 +1466,50 @@ function MapView({ tops, weights, ranks, onOpen }) {
         { label: "Industrial Site Area", color: "#4FBBAC" },
       ]} />
 
-      <div className="panel" style={{ marginTop: 20 }}>
-        <div className="panel-head">
-          <h2>Layer provenance</h2>
-          <span className="panel-note">What is real and what is placeholder</span>
-        </div>
-        <p className="hint" style={{ maxWidth: "72ch" }}>
-          Project names, costs, funding status and sponsors follow the published
-          2026 list; coordinates are approximate corridor midpoints. The Industrial
-          Site Area extents, corridor volumes, gateway tonnages and crash counts
-          are demo geometry standing in for the Task 3 data acquisition and the
-          Task 4 ISA update. None of them should be read as regional figures.
-        </p>
-      </div>
+      <p className="demo-note">
+        All geometry and values on this map are demonstration data only.
+      </p>
     </div>
   );
 }
 
 /* ================================================================== *
- *  12. FUNDING AND GRANT-ELIGIBILITY TRACKER                          *
+ *  13. FUNDING AND GRANT-ELIGIBILITY TRACKER                          *
  * ================================================================== */
 
-function Funding({ tops, onOpen }) {
+function Funding({ tops, weights, criteria, onOpen }) {
   const [status, setStatus] = useState("");
-  const rows = tops.filter((p) => !status || p.grantStatus === status);
+  const rows = tops.filter((p) => !status || statusOf(p) === status);
 
-  const byProgram = GRANT_PROGRAMS.map((g) => {
-    const set = tops.filter((p) => p.grant === g.name);
-    const part = (st) => set.filter((p) => p.grantStatus === st).reduce((a, p) => a + (st === "awarded" ? p.funded : gapOf(p)), 0);
-    const aw = part("awarded"), ap = part("applied"), el = part("eligible");
+  const codes = Object.keys(PROGRAMS);
+  const byProgram = codes.map((code) => {
+    const aw = tops.filter((p) => p.awarded === code).reduce((a, p) => a + p.funded, 0);
+    const ap = tops.filter((p) => p.applied === code).reduce((a, p) => a + gapOf(p), 0);
+    const el = tops.filter((p) => p.eligible.indexOf(code) >= 0 && p.awarded !== code && p.applied !== code)
+      .reduce((a, p) => a + gapOf(p), 0);
+    const n = tops.filter((p) => p.eligible.indexOf(code) >= 0 || p.awarded === code || p.applied === code).length;
     return {
-      label: g.name.replace(" / INFRA", "").replace("Port Infrastructure Development", "Port (PIDP)").replace("Bridge Investment Program", "Bridge (BIP)").replace("Airport Improvement Program", "Airport (AIP)"),
-      full: g.name,
-      total: aw + ap + el,
-      foot: set.length + " projects \u00b7 " + g.cycle + " cycle \u00b7 " + g.match,
+      label: code, full: PROGRAMS[code], total: aw + ap + el,
+      foot: n + " projects reference this programme",
       parts: [
-        { name:"Awarded", v: aw, color:"#06403C" },
-        { name:"Applied", v: ap, color:"#17968B" },
-        { name:"Eligible, not applied", v: el, color:"#C2DAD5" },
-      ] };
-  }).filter((r) => r.total > 0).sort((a, b) => b.total - a.total);
+        { name: "Awarded", v: aw, color: "#06403C" },
+        { name: "Applied", v: ap, color: "#17968B" },
+        { name: "Eligible, not applied", v: el, color: "#C2DAD5" },
+      ],
+    };
+  }).filter((r) => r.total > 0).sort((a, b) => b.total - a.total).slice(0, 10);
   const maxProg = Math.max(...byProgram.map((r) => r.total), 1);
 
   const counts = ["awarded", "applied", "eligible"].map((s, i) => {
-    const set = tops.filter((p) => p.grantStatus === s);
+    const set = tops.filter((p) => statusOf(p) === s);
     return { name: s, v: set.length, color: SCALE[i * 2], items: set.map((p) => p.name) };
   });
 
-  const matchNeed = tops.filter((p) => p.grantStatus !== "awarded")
+  const matchNeed = tops.filter((p) => statusOf(p) !== "awarded")
     .reduce((a, p) => a + gapOf(p) * (p.match / 100), 0);
+
+  const used = codes.filter((c) =>
+    tops.some((p) => p.awarded === c || p.applied === c || p.eligible.indexOf(c) >= 0));
 
   return (
     <div className="screen">
@@ -1604,9 +1517,9 @@ function Funding({ tops, onOpen }) {
         <div className="eyebrow">Funding</div>
         <h1>Grant eligibility and match tracker</h1>
         <p className="lede">
-          Each project against the federal or state programme it is eligible for,
-          where it sits in that programme's cycle, and the non-federal match the
-          region has to find if the application succeeds.
+          Each project against the programmes it is eligible for, the one it has an
+          award or a live application under, and the non-federal match the region
+          has to find if that application succeeds.
         </p>
       </header>
 
@@ -1618,17 +1531,16 @@ function Funding({ tops, onOpen }) {
       </div>
 
       <div className="chart-grid">
-        <ChartFrame
-          title="Pipeline by programme"
-          sub="Dollars awarded, applied for, and eligible but not yet applied. Hover a band for the programme."
-          legend={[{ label:"Awarded", color:"#06403C" }, { label:"Applied", color:"#17968B" }, { label:"Eligible", color:"#C2DAD5" }]}
-        >
+        <ChartFrame title="Pipeline by programme"
+          sub="Dollars awarded, applied for, and eligible but not yet applied"
+          legend={[{ label:"Awarded", color:"#06403C" }, { label:"Applied", color:"#17968B" }, { label:"Eligible", color:"#C2DAD5" }]}>
           <StackedBars rows={byProgram} maxV={maxProg} fmt={money} unit="Dollars" />
         </ChartFrame>
 
         <ChartFrame title="Where the projects sit" sub="Count by application status"
           legend={counts.map((c) => ({ label: c.name, color: c.color }))}>
-          <Donut parts={counts} centreValue={String(tops.length)} centreLabel="PROJECTS" fmt={(v) => v + " projects"} unit="Application status" />
+          <Donut parts={counts} centreValue={String(tops.length)} centreLabel="PROJECTS"
+            fmt={(v) => v + " projects"} unit="Application status" />
         </ChartFrame>
       </div>
 
@@ -1647,7 +1559,10 @@ function Funding({ tops, onOpen }) {
         <div className="table-wrap" style={{ border: 0 }}>
           <table className="fund-table">
             <thead><tr>
-              <th>Project</th><th>Eligible programme</th><th>Status</th>
+              <th>Project</th>
+              <th>Awarded</th>
+              <th>Applied</th>
+              <th>Eligible programmes</th>
               <th style={{ textAlign: "right" }}>Gap</th>
               <th style={{ width: 150 }}>Local match required</th>
             </tr></thead>
@@ -1655,8 +1570,13 @@ function Funding({ tops, onOpen }) {
               {rows.map((p) => (
                 <tr key={p.id}>
                   <td><button className="link" onClick={() => onOpen(p.id)}>{p.name}</button></td>
-                  <td>{p.grant}</td>
-                  <td><span className={"pill " + p.grantStatus}>{p.grantStatus}</span></td>
+                  <td>{p.awarded ? <Code code={p.awarded} kind="aw" /> : <span className="meta">&mdash;</span>}</td>
+                  <td>{p.applied ? <Code code={p.applied} kind="ap" /> : <span className="meta">&mdash;</span>}</td>
+                  <td><span className="codechips">
+                    {p.eligible.filter((c) => c !== p.awarded && c !== p.applied).map((c) => (
+                      <Code key={c} code={c} />
+                    ))}
+                  </span></td>
                   <td className="c-num">{gapOf(p) > 0 ? money(gapOf(p)) : "\u2014"}</td>
                   <td>
                     <span className="match-cell">
@@ -1675,28 +1595,31 @@ function Funding({ tops, onOpen }) {
 
       <div className="panel">
         <div className="panel-head">
-          <h2>Programme cycles</h2>
-          <span className="panel-note">Illustrative timing, confirmed each year</span>
+          <h2>Programme codes</h2>
+          <span className="panel-note">{used.length} programmes referenced</span>
         </div>
-        <table className="mini"><tbody>
-          {GRANT_PROGRAMS.map((g) => (
-            <tr key={g.name}>
-              <td className="mini-a">{g.name}</td>
-              <td className="mini-b">{g.cycle}</td>
-              <td className="mini-c">{g.match}</td>
-            </tr>
+        <dl className="proglist">
+          {used.map((c) => (
+            <React.Fragment key={c}>
+              <dt><Code code={c} /></dt>
+              <dd>{PROGRAMS[c]}</dd>
+            </React.Fragment>
           ))}
-        </tbody></table>
+        </dl>
       </div>
+
+      <p className="demo-note">
+        Award, application and match figures shown here are demonstration data only.
+      </p>
     </div>
   );
 }
 
 /* ================================================================== *
- *  13. IMPLEMENTATION AND REPORTING TRACKER                           *
+ *  14. IMPLEMENTATION AND REPORTING TRACKER                           *
  * ================================================================== */
 
-function Tracker({ tops, weights, onOpen }) {
+function Tracker({ tops, weights, criteria, onOpen }) {
   const tip = useTip();
   const [filter, setFilter] = useState("");
   const shown = tops.filter((p) => !filter || p.state === filter);
@@ -1731,7 +1654,7 @@ function Tracker({ tops, weights, onOpen }) {
         <h1>Implementation and reporting</h1>
         <p className="lede">
           Where every project sits in the delivery sequence, which agency owns the
-          next step and when it is due, and what moved since last year's list.
+          next step, and when it is due.
         </p>
       </header>
 
@@ -1770,7 +1693,7 @@ function Tracker({ tops, weights, onOpen }) {
                 </span>
                 <span className="ms-track"
                   {...hoverProps(tip, () => (
-                    <ProjectTip p={p} weights={weights}
+                    <ProjectTip p={p} weights={weights} criteria={criteria}
                       extra={<TipRow k="Current stage" v={MILESTONES[idx - 1]} />} />
                   ))}>
                   {MILESTONES.map((m, i) => (
@@ -1783,30 +1706,18 @@ function Tracker({ tops, weights, onOpen }) {
         </ul>
       </div>
 
-      <div className="panel">
-        <div className="panel-head">
-          <h2>What changed</h2>
-          <span className="panel-note">Frozen at each annual adoption</span>
-        </div>
-        <ul className="change-list">
-          {CHANGES.map((c, i) => (
-            <li key={i}>
-              <span className="change-year">{c.y}</span>
-              <span className="change-type">{c.t}</span>
-              <span className="change-body"><strong>{c.p}</strong><span>{c.n}</span></span>
-            </li>
-          ))}
-        </ul>
-      </div>
+      <p className="demo-note">
+        Milestone stages and dates shown here are demonstration data only.
+      </p>
     </div>
   );
 }
 
 /* ================================================================== *
- *  14. PROJECT RECORD                                                 *
+ *  15. PROJECT RECORD                                                 *
  * ================================================================== */
 
-function Record({ project, kids, weights, rank, onClose, onOpen }) {
+function Record({ project, kids, weights, criteria, rank, onClose, onOpen }) {
   useEffect(() => {
     const k = (e) => { if (e.key === "Escape") onClose(); };
     window.addEventListener("keydown", k);
@@ -1824,7 +1735,9 @@ function Record({ project, kids, weights, rank, onClose, onOpen }) {
               {rank ? " \u00b7 Rank " + rank : ""}
             </div>
             <h2>{project.name}</h2>
-            <div className="record-sponsor">{project.agency} &middot; {project.lat.toFixed(4)}, {project.lng.toFixed(4)}</div>
+            <div className="record-sponsor">
+              {project.agency} &middot; {project.lat.toFixed(4)}, {project.lng.toFixed(4)}
+            </div>
           </div>
           <button className="close" onClick={onClose} aria-label="Close record">&times;</button>
         </div>
@@ -1840,25 +1753,34 @@ function Record({ project, kids, weights, rank, onClose, onOpen }) {
 
         <h3>Funding position</h3>
         <dl className="rec-kv">
-          <dt>Programme</dt><dd>{project.grant}</dd>
-          <dt>Status</dt><dd><span className={"pill " + project.grantStatus}>{project.grantStatus}</span></dd>
-          <dt>Local match</dt><dd>{project.match}% &middot; {money(gapOf(project) * project.match / 100)}</dd>
-          <dt>Next milestone</dt><dd>{project.milestone}, {project.msDate}</dd>
+          <dt>Awarded</dt>
+          <dd>{project.awarded ? <Code code={project.awarded} kind="aw" /> : "\u2014"}</dd>
+          <dt>Applied to</dt>
+          <dd>{project.applied ? <Code code={project.applied} kind="ap" /> : "\u2014"}</dd>
+          <dt>Eligible</dt>
+          <dd><span className="codechips">
+            {project.eligible.filter((c) => c !== project.awarded && c !== project.applied)
+              .map((c) => <Code key={c} code={c} />)}
+          </span></dd>
+          <dt>Local match</dt>
+          <dd>{project.match}% &middot; {money(gapOf(project) * project.match / 100)}</dd>
+          <dt>Next milestone</dt>
+          <dd>{project.milestone}, {project.msDate}</dd>
         </dl>
 
         <h3>Scorecard</h3>
         <div className="score-grid">
-          {CRITERIA.map((c, i) => (
+          {criteria.map((c) => (
             <div key={c.key} className="score-row">
               <span>{c.label}</span>
-              <span className="score-bar"><span style={{ width: project.m[i] + "%" }} /></span>
-              <span className="score-num">{project.m[i]}</span>
+              <span className="score-bar"><span style={{ width: valueOf(project, c) + "%" }} /></span>
+              <span className="score-num">{valueOf(project, c)}</span>
             </div>
           ))}
         </div>
         <div className="score-total">
           <span>Weighted composite score</span>
-          <strong>{scoreOf(project, weights).toFixed(1)}</strong>
+          <strong>{scoreOf(project, weights, criteria).toFixed(1)}</strong>
         </div>
 
         <h3>Delivery position</h3>
@@ -1884,10 +1806,7 @@ function Record({ project, kids, weights, rank, onClose, onOpen }) {
         )}
 
         <p className="record-foot">
-          Criterion values, grant status and milestone dates in this demo are
-          placeholders. In the built system they come from the sponsor data call
-          and state performance datasets, with source and vintage shown against
-          each value.
+          All values in this record are demonstration data only.
         </p>
       </aside>
     </>
@@ -1895,17 +1814,16 @@ function Record({ project, kids, weights, rank, onClose, onOpen }) {
 }
 
 /* ================================================================== *
- *  15. SHELL                                                          *
+ *  16. SHELL                                                          *
  * ================================================================== */
 
 const NAV = [
-  { k:"overview",  label:"Portfolio" },
-  { k:"register",  label:"Register" },
-  { k:"scoring",   label:"Scoring" },
-  { k:"map",       label:"Map" },
-  { k:"funding",   label:"Funding" },
-  { k:"delivery",  label:"Delivery" },
-  { k:"scenarios", label:"Scenarios" },
+  { k:"overview", label:"Portfolio" },
+  { k:"register", label:"Register" },
+  { k:"scoring",  label:"Scoring" },
+  { k:"map",      label:"Map" },
+  { k:"funding",  label:"Funding" },
+  { k:"delivery", label:"Delivery" },
 ];
 
 function App() {
@@ -1913,23 +1831,57 @@ function App() {
   const [openId, setOpenId] = useState(null);
   const [filters, setFilters] = useState({ q:"", mode:"", state:"", phase:"" });
   const [basis, setBasis] = useState("benefit");
+  const [criteria, setCriteria] = useState(() => DEFAULT_CRITERIA.map((c) => ({ ...c })));
   const [weights, setWeights] = useState(() => {
-    const w = {}; CRITERIA.forEach((c) => { w[c.key] = c.w; }); return w;
+    const w = {}; DEFAULT_CRITERIA.forEach((c) => { w[c.key] = c.w; }); return w;
   });
+
   const baseWeights = useMemo(() => {
-    const w = {}; CRITERIA.forEach((c) => { w[c.key] = c.w; }); return w;
+    const w = {}; DEFAULT_CRITERIA.forEach((c) => { w[c.key] = c.w; }); return w;
+  }, []);
+  const baseCriteria = useMemo(() => DEFAULT_CRITERIA.map((c) => ({ ...c })), []);
+
+  const setWeight = useCallback((key, v) => {
+    setWeights((w) => rebalance(w, criteria, key, v));
+  }, [criteria]);
+
+  const addCriterion = useCallback((label, unit) => {
+    const key = "c" + Date.now().toString(36);
+    const next = criteria.concat([{
+      key, tier: "added", label, mi: null,
+      unit: unit || "Added in this session",
+    }]);
+    setCriteria(next);
+    setWeights((w) => rebalance({ ...w, [key]: 0 }, next, key, 10));
+  }, [criteria]);
+
+  const removeCriterion = useCallback((key) => {
+    const next = criteria.filter((c) => c.key !== key);
+    if (!next.length) return;
+    setCriteria(next);
+    setWeights((w) => {
+      const cut = { ...w };
+      delete cut[key];
+      return rebalance(cut, next, next[0].key, cut[next[0].key] || 0);
+    });
+  }, [criteria]);
+
+  const resetCriteria = useCallback(() => {
+    setCriteria(DEFAULT_CRITERIA.map((c) => ({ ...c })));
+    const w = {}; DEFAULT_CRITERIA.forEach((c) => { w[c.key] = c.w; });
+    setWeights(w);
   }, []);
 
   const tops = useMemo(() => DATA.filter((p) => !p.parent), []);
 
-  const rankMap = (w, b) => {
+  const rankMap = (w, crit, b) => {
     const m = {};
-    [...tops].sort((a, c) => rankValue(c, w, b) - rankValue(a, w, b))
+    [...tops].sort((a, c) => rankValue(c, w, crit, b) - rankValue(a, w, crit, b))
       .forEach((p, i) => { m[p.id] = i + 1; });
     return m;
   };
-  const ranks = useMemo(() => rankMap(weights, basis), [weights, basis, tops]);
-  const baseRanks = useMemo(() => rankMap(baseWeights, basis), [baseWeights, basis, tops]);
+  const ranks = useMemo(() => rankMap(weights, criteria, basis), [weights, criteria, basis, tops]);
+  const baseRanks = useMemo(() => rankMap(baseWeights, baseCriteria, basis), [baseWeights, baseCriteria, basis, tops]);
 
   const filtered = useMemo(() => {
     const q = filters.q.trim().toLowerCase();
@@ -1947,45 +1899,48 @@ function App() {
   const kids = open ? DATA.filter((k) => k.parent === open.id) : [];
 
   const counts = {
-    register: DATA.length, scoring: tops.length, map: tops.length,
+    register: DATA.length, scoring: criteria.length, map: tops.length,
     funding: tops.length, delivery: tops.length,
   };
 
   return (
     <TipProvider>
-    <div className="app">
-      <nav className="rail">
-        <div className="brand">
-          <span className="brand-mark" aria-hidden="true" />
-          <span className="brand-text">Regional Freightway<em>Integrated dashboard</em></span>
-        </div>
-        <ul>
-          {NAV.map((n) => (
-            <li key={n.k}>
-              <button className={view === n.k ? "on" : ""} onClick={() => setView(n.k)}>
-                {n.label}{counts[n.k] ? <i>{counts[n.k]}</i> : null}
-              </button>
-            </li>
-          ))}
-        </ul>
-        <div className="rail-foot"><span>2026 list</span><span>Demo data</span></div>
-      </nav>
+      <div className="app">
+        <nav className="rail">
+          <div className="brand">
+            <span className="brand-mark" aria-hidden="true" />
+            <span className="brand-text">Regional Freightway<em>Integrated dashboard</em></span>
+          </div>
+          <ul>
+            {NAV.map((n) => (
+              <li key={n.k}>
+                <button className={view === n.k ? "on" : ""} onClick={() => setView(n.k)}>
+                  {n.label}{counts[n.k] ? <i>{counts[n.k]}</i> : null}
+                </button>
+              </li>
+            ))}
+          </ul>
+          <div className="rail-foot"><span>2026 list</span><span>Demonstration data only</span></div>
+        </nav>
 
-      <main className="main">
-        {view === "overview"  && <Overview tops={tops} weights={weights} ranks={ranks} onOpen={setOpenId} />}
-        {view === "register"  && <Register rows={filtered} filters={filters} setFilters={setFilters}
-                                   onOpen={setOpenId} weights={weights} ranks={ranks} />}
-        {view === "scoring"   && <Scoring weights={weights} setWeights={setWeights} basis={basis}
-                                   setBasis={setBasis} tops={tops} onOpen={setOpenId} baseRanks={baseRanks} />}
-        {view === "map"       && <MapView tops={tops} weights={weights} ranks={ranks} onOpen={setOpenId} />}
-        {view === "funding"   && <Funding tops={tops} onOpen={setOpenId} />}
-        {view === "delivery"  && <Tracker tops={tops} weights={weights} onOpen={setOpenId} />}
-        {view === "scenarios" && <Optimizer tops={tops} weights={weights} onOpen={setOpenId} />}
-      </main>
+        <main className="main">
+          {view === "overview" && <Overview tops={tops} weights={weights} criteria={criteria}
+            ranks={ranks} onOpen={setOpenId} />}
+          {view === "register" && <Register rows={filtered} filters={filters} setFilters={setFilters}
+            onOpen={setOpenId} weights={weights} criteria={criteria} ranks={ranks} />}
+          {view === "scoring" && <Scoring weights={weights} setWeight={setWeight} criteria={criteria}
+            addCriterion={addCriterion} removeCriterion={removeCriterion} resetCriteria={resetCriteria}
+            basis={basis} setBasis={setBasis} tops={tops} onOpen={setOpenId} baseRanks={baseRanks} />}
+          {view === "map" && <MapView tops={tops} weights={weights} criteria={criteria}
+            ranks={ranks} onOpen={setOpenId} />}
+          {view === "funding" && <Funding tops={tops} weights={weights} criteria={criteria} onOpen={setOpenId} />}
+          {view === "delivery" && <Tracker tops={tops} weights={weights} criteria={criteria} onOpen={setOpenId} />}
+        </main>
 
-      <Record project={open} kids={kids} weights={weights} rank={open && !open.parent ? ranks[open.id] : null}
-        onClose={() => setOpenId(null)} onOpen={setOpenId} />
-    </div>
+        <Record project={open} kids={kids} weights={weights} criteria={criteria}
+          rank={open && !open.parent ? ranks[open.id] : null}
+          onClose={() => setOpenId(null)} onOpen={setOpenId} />
+      </div>
     </TipProvider>
   );
 }
