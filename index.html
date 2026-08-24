@@ -1,119 +1,505 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Priority freight projects &mdash; dashboard demo</title>
+<title>St. Louis Regional Freightway &mdash; integrated priority projects dashboard</title>
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" crossorigin="" />
 <style>
-  html, body { margin: 0; padding: 0; background: #F3F4F1; }
-  #root { min-height: 100vh; }
-  .boot {
-    font: 13px/1.5 system-ui, sans-serif; color: #35505E;
-    padding: 40px; letter-spacing: .04em;
-  }
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+html, body { margin: 0; padding: 0; background: #F0F6F4; }
+#root { min-height: 100vh; }
+.boot { font: 13px/1.6 Inter, system-ui, sans-serif; color: #47706A; padding: 44px; letter-spacing: .04em; }
+
+.app {
+  --ink: #06302D;
+  --slate: #47706A;
+  --paper: #F0F6F4;
+  --panel: #FFFFFF;
+  --line: #CBE0DB;
+  --hair: #E4EFEC;
+  --wash: #E6F1EE;
+  --pale: #C2DAD5;
+  --teal: #0E7C72;
+  --teal-mid: #17968B;
+  --teal-lt: #4FBBAC;
+  --teal-br: #4FD5C4;
+  --deep: #06403C;
+  --body: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  display: flex; min-height: 100vh; background: var(--paper); color: var(--ink);
+  font-family: var(--body); font-size: 14px; line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+.app *:focus-visible { outline: 2px solid var(--teal); outline-offset: 2px; }
+.app button { font: inherit; cursor: pointer; }
+.num { font-variant-numeric: tabular-nums lining-nums; font-feature-settings: "tnum" 1; }
+
+/* rail */
+.rail { width: 212px; flex: 0 0 212px; background: var(--ink); color: #DCEFEA; display: flex; flex-direction: column; position: sticky; top: 0; height: 100vh; }
+.brand { padding: 22px 20px 16px; display: flex; gap: 10px; align-items: flex-start; }
+.brand-mark { width: 13px; height: 34px; margin-top: 2px; flex: 0 0 13px; background: repeating-linear-gradient(180deg, #4FD5C4 0 6px, transparent 6px 9px, #17968B 9px 15px, transparent 15px 18px); }
+.brand-text { font-size: 15px; font-weight: 600; letter-spacing: -.005em; line-height: 1.2; }
+.brand-text em { display: block; font-style: normal; font-size: 10.5px; font-weight: 400; letter-spacing: .08em; text-transform: uppercase; color: #7FB8AF; margin-top: 5px; }
+.rail ul { list-style: none; margin: 6px 0 0; padding: 0; flex: 1; }
+.rail li button { width: 100%; text-align: left; background: none; border: 0; color: #9CC7C0; padding: 9px 20px; font-size: 13.5px; border-left: 3px solid transparent; display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.rail li button:hover { color: #fff; background: rgba(255,255,255,.05); }
+.rail li button.on { color: #fff; border-left-color: var(--teal-br); background: rgba(79,213,196,.14); }
+.rail li button i { font-style: normal; font-size: 10px; color: #6FA79F; font-variant-numeric: tabular-nums; }
+.rail-foot { padding: 13px 20px; border-top: 1px solid rgba(255,255,255,.14); display: flex; flex-direction: column; gap: 2px; font-size: 10.5px; color: #7FB8AF; font-variant-numeric: tabular-nums; }
+
+/* shell */
+.main { flex: 1; min-width: 0; }
+.screen { max-width: 1120px; padding: 32px 40px 72px; }
+.eyebrow { font-size: 10.5px; letter-spacing: .16em; text-transform: uppercase; color: var(--slate); font-variant-numeric: tabular-nums; }
+.screen-head { margin-bottom: 24px; }
+.screen-head h1 { font-size: 33px; font-weight: 600; letter-spacing: -.022em; margin: 4px 0 8px; }
+.lede { max-width: 64ch; color: var(--slate); margin: 0; }
+
+.stat-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; background: var(--line); border: 1px solid var(--line); margin-bottom: 20px; }
+.stat { background: var(--panel); padding: 15px 18px; }
+.stat-label { font-size: 10.5px; letter-spacing: .09em; text-transform: uppercase; color: var(--slate); }
+.stat-value { font-size: 24px; font-weight: 600; letter-spacing: -.02em; margin-top: 3px; font-variant-numeric: tabular-nums; }
+.stat-sub { font-size: 12px; color: var(--slate); margin-top: 2px; }
+
+.panel { background: var(--panel); border: 1px solid var(--line); padding: 17px 20px 20px; margin-bottom: 20px; }
+.panel-head { display: flex; align-items: baseline; justify-content: space-between; gap: 14px; margin-bottom: 14px; padding-bottom: 10px; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+.panel-head h2 { font-size: 16px; font-weight: 600; margin: 0; letter-spacing: -.01em; }
+.panel-note { font-size: 12px; color: var(--slate); }
+.two-col { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 20px; align-items: start; }
+.two-col.wide-right { grid-template-columns: minmax(0,1fr) minmax(0,1.2fr); }
+
+.ribbon { display: flex; width: 100%; background: var(--pale); }
+.ribbon span { display: block; }
+.tag { font-size: 10px; letter-spacing: .07em; text-transform: uppercase; border: 1px solid; padding: 1px 5px; white-space: nowrap; }
+.link { background: none; border: 0; padding: 0; color: var(--ink); text-align: left; border-bottom: 1px solid transparent; }
+.link:hover { color: var(--teal); border-bottom-color: var(--teal); }
+.meta { font-size: 11px; color: var(--slate); font-variant-numeric: tabular-nums; }
+.legend { display: flex; gap: 16px; margin-top: 10px; font-size: 11.5px; color: var(--slate); flex-wrap: wrap; }
+.legend i { display: inline-block; width: 10px; height: 10px; margin-right: 5px; vertical-align: -1px; }
+.ghost { background: none; border: 1px solid var(--line); padding: 7px 12px; color: var(--slate); }
+.ghost:hover { border-color: var(--slate); color: var(--ink); }
+.seg { display: inline-flex; border: 1px solid var(--line); flex-wrap: wrap; }
+.seg button { background: var(--panel); border: 0; padding: 6px 12px; font-size: 12.5px; color: var(--slate); border-right: 1px solid var(--line); }
+.seg button:last-child { border-right: 0; }
+.seg button.on { background: var(--ink); color: #fff; }
+.seg.small button { padding: 4px 10px; font-size: 11.5px; }
+.field-label { display: block; font-size: 10.5px; letter-spacing: .1em; text-transform: uppercase; color: var(--slate); margin-bottom: 6px; }
+.hint { font-size: 12px; color: var(--slate); margin: 8px 0 0; max-width: 48ch; }
+
+/* charts */
+.chart-grid { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 20px; }
+.chart-title { font-size: 13px; font-weight: 600; margin: 0 0 2px; }
+.chart-sub { font-size: 11.5px; color: var(--slate); margin: 0 0 12px; }
+.chart svg { width: 100%; display: block; overflow: visible; }
+.axis-line { stroke: var(--line); stroke-width: 1; }
+.grid-line { stroke: var(--hair); stroke-width: 1; }
+.axis-text { font-size: 9.5px; fill: var(--slate); font-family: var(--body); font-variant-numeric: tabular-nums; }
+.bar-label { font-size: 10.5px; fill: var(--ink); font-family: var(--body); }
+.dot { cursor: pointer; }
+.dot:hover { stroke: var(--ink); stroke-width: 1.5; }
+
+/* overview lists */
+.mode-grid { display: flex; flex-direction: column; gap: 9px; }
+.mode-row { display: grid; grid-template-columns: 54px 1fr 78px; align-items: center; gap: 12px; }
+.mode-name { font-size: 12.5px; letter-spacing: .04em; text-transform: uppercase; color: var(--slate); }
+.mode-bar { display: flex; height: 15px; background: var(--wash); }
+.mode-val { font-size: 13px; text-align: right; font-variant-numeric: tabular-nums; }
+.split-row { display: flex; gap: 26px; margin-top: 15px; padding-top: 12px; border-top: 1px solid var(--line); flex-wrap: wrap; }
+.split { display: flex; align-items: baseline; gap: 7px; }
+.split-key { font-size: 11px; letter-spacing: .09em; text-transform: uppercase; color: var(--slate); }
+.split-val { font-size: 15px; font-variant-numeric: tabular-nums; }
+.split-pct { font-size: 12px; color: var(--slate); font-variant-numeric: tabular-nums; }
+.gap-list { list-style: none; margin: 0; padding: 0; }
+.gap-item { width: 100%; display: grid; grid-template-columns: 1fr 140px 84px; align-items: center; gap: 14px; background: none; border: 0; border-bottom: 1px solid var(--hair); padding: 9px 0; text-align: left; }
+.gap-item:hover { background: #F3F9F7; }
+.gap-name { font-size: 13.5px; }
+.gap-num { font-size: 13px; text-align: right; color: var(--teal); font-variant-numeric: tabular-nums; }
+
+/* register */
+.filters { display: flex; gap: 14px; align-items: flex-end; flex-wrap: wrap; margin-bottom: 16px; }
+.filters label { display: flex; flex-direction: column; gap: 4px; }
+.filters label > span { font-size: 10.5px; letter-spacing: .1em; text-transform: uppercase; color: var(--slate); }
+.filters input, .filters select { font: inherit; padding: 6px 9px; border: 1px solid var(--line); background: var(--panel); color: var(--ink); min-width: 142px; }
+.table-wrap { border: 1px solid var(--line); background: var(--panel); overflow-x: auto; }
+table.register { width: 100%; border-collapse: collapse; font-size: 13px; }
+.register thead th { text-align: left; font-size: 10.5px; letter-spacing: .1em; text-transform: uppercase; color: var(--slate); font-weight: 500; padding: 10px 12px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+.register td { padding: 8px 12px; border-bottom: 1px solid var(--hair); vertical-align: middle; }
+.register tr:hover td { background: #F3F9F7; }
+.register tr.child td.c-name { padding-left: 30px; }
+.register tr.child { color: var(--slate); }
+.c-num { text-align: right; font-size: 12.5px; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.c-num.gap { color: var(--teal); }
+.c-rib { width: 122px; }
+.name-cell { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.disc { width: 17px; height: 17px; line-height: 1; border: 1px solid var(--line); background: var(--panel); color: var(--slate); font-size: 12px; padding: 0; }
+.disc-space { width: 17px; display: inline-block; }
+.empty { padding: 26px 12px; color: var(--slate); text-align: center; }
+
+/* scoring */
+.weight-row { padding: 9px 0; border-bottom: 1px solid var(--hair); }
+.weight-top { display: flex; justify-content: space-between; align-items: baseline; }
+.weight-top label { font-size: 13px; }
+.weight-num { font-size: 13px; font-variant-numeric: tabular-nums; }
+.weight-row input[type=range] { width: 100%; accent-color: var(--teal); margin: 5px 0 2px; }
+.weight-unit { font-size: 11.5px; color: var(--slate); }
+.rank-list { list-style: none; margin: 0; padding: 0; max-height: 620px; overflow-y: auto; }
+.rank-item { width: 100%; display: grid; grid-template-columns: 30px 1fr auto; gap: 12px; align-items: center; background: none; border: 0; border-bottom: 1px solid var(--hair); padding: 8px 0; text-align: left; }
+.rank-item:hover { background: #F3F9F7; }
+.rank-no { font-size: 12px; color: var(--slate); font-variant-numeric: tabular-nums; }
+.rank-name { font-size: 13px; }
+.rank-meta { display: block; font-size: 10.5px; color: var(--slate); margin-top: 1px; font-variant-numeric: tabular-nums; }
+.rank-right { display: flex; align-items: center; gap: 8px; }
+.rank-score { font-size: 13px; font-variant-numeric: tabular-nums; }
+.move { font-size: 10.5px; font-variant-numeric: tabular-nums; }
+.move.up { color: var(--deep); }
+.move.down { color: #8FA9A4; }
+.fragile { font-size: 9.5px; letter-spacing: .09em; text-transform: uppercase; color: var(--teal); border: 1px solid var(--teal); background: var(--wash); padding: 1px 4px; }
+
+/* scenarios */
+.controls { display: flex; flex-direction: column; gap: 14px; margin-bottom: 18px; }
+.budget { display: grid; grid-template-columns: 1fr 118px; grid-template-areas: "l l" "s o"; gap: 8px 14px; align-items: center; }
+.budget .field-label { grid-area: l; margin: 0; }
+.budget input { grid-area: s; width: 100%; accent-color: var(--deep); }
+.budget output { grid-area: o; font-size: 19px; text-align: right; font-variant-numeric: tabular-nums; }
+.check { display: flex; gap: 8px; align-items: center; font-size: 13px; color: var(--slate); }
+.scenario-summary { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; background: var(--line); border: 1px solid var(--line); margin-top: 18px; }
+.pick-list { list-style: none; margin: 0; padding: 0; }
+.pick-list li { display: grid; grid-template-columns: 16px 1fr 84px 56px 148px; gap: 10px; align-items: center; padding: 7px 0; border-bottom: 1px solid var(--hair); color: var(--slate); }
+.pick-list li.picked { color: var(--ink); }
+.pick-mark { font-size: 10px; color: var(--pale); }
+.pick-list li.picked .pick-mark { color: var(--teal-mid); }
+.pick-name { font-size: 13px; }
+.pick-num, .pick-eff { font-size: 12.5px; text-align: right; font-variant-numeric: tabular-nums; }
+.pick-actions { display: flex; gap: 6px; justify-content: flex-end; }
+.chip { background: none; border: 1px solid var(--line); padding: 2px 8px; font-size: 11px; color: var(--slate); }
+.chip.on { background: var(--ink); border-color: var(--ink); color: #fff; }
+.frontier svg { width: 100%; height: 150px; display: block; background: #F7FBFA; border: 1px solid var(--line); }
+.frontier-axis { display: flex; justify-content: space-between; font-size: 10.5px; color: var(--slate); margin-top: 5px; font-variant-numeric: tabular-nums; }
+
+/* map */
+.map-shell { display: grid; grid-template-columns: 232px 1fr; border: 1px solid var(--line); background: var(--panel); }
+.map-side { border-right: 1px solid var(--line); padding: 14px 16px; }
+.map-side h3 { font-size: 10.5px; letter-spacing: .11em; text-transform: uppercase; color: var(--slate); margin: 0 0 10px; font-weight: 600; }
+.map-side h3.later { margin-top: 20px; }
+.layer { display: flex; gap: 9px; align-items: flex-start; padding: 6px 0; font-size: 12.5px; }
+.layer input { margin-top: 3px; accent-color: var(--teal); }
+.layer span em { display: block; font-style: normal; font-size: 10.5px; color: var(--slate); margin-top: 1px; }
+.layer .src { display: inline-block; font-size: 9px; letter-spacing: .08em; text-transform: uppercase; border: 1px solid var(--pale); color: var(--slate); padding: 0 4px; margin-top: 3px; }
+.layer .src.demo { border-color: var(--teal-lt); color: var(--teal); }
+#mapview { height: 560px; width: 100%; background: var(--wash); }
+.map-fallback { height: 560px; display: flex; align-items: center; justify-content: center; padding: 40px; text-align: center; background: repeating-linear-gradient(135deg, #F2F9F7 0 10px, #E6F1EE 10px 20px); }
+.map-fallback div { max-width: 44ch; }
+.map-fallback h3 { font-size: 15px; margin: 0 0 8px; font-weight: 600; letter-spacing: -.01em; text-transform: none; letter-spacing: normal; color: var(--ink); }
+.map-fallback p { font-size: 12.5px; color: var(--slate); margin: 0 0 8px; }
+.leaflet-container { font-family: var(--body); }
+.leaflet-popup-content { margin: 12px 14px; font-size: 12.5px; }
+.pop-t { font-weight: 600; display: block; margin-bottom: 4px; }
+.pop-r { display: flex; justify-content: space-between; gap: 16px; font-variant-numeric: tabular-nums; color: var(--slate); }
+
+/* funding */
+.fund-table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+.fund-table th { text-align: left; font-size: 10.5px; letter-spacing: .1em; text-transform: uppercase; color: var(--slate); font-weight: 500; padding: 9px 10px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+.fund-table td { padding: 8px 10px; border-bottom: 1px solid var(--hair); vertical-align: middle; }
+.fund-table tr:hover td { background: #F3F9F7; }
+.pill { font-size: 10px; letter-spacing: .07em; text-transform: uppercase; padding: 2px 7px; white-space: nowrap; border: 1px solid; }
+.pill.awarded { background: var(--deep); border-color: var(--deep); color: #fff; }
+.pill.applied { background: var(--wash); border-color: var(--teal-mid); color: var(--teal); }
+.pill.eligible { border-color: var(--pale); color: var(--slate); }
+.pill.ineligible { border-color: var(--hair); color: #9BB3AF; }
+.match-cell { display: flex; align-items: center; gap: 8px; }
+.match-bar { flex: 1; height: 6px; background: var(--wash); min-width: 42px; }
+.match-bar span { display: block; height: 100%; background: var(--teal-lt); }
+
+/* delivery */
+.ms-list { list-style: none; margin: 0; padding: 0; }
+.ms-list li { display: grid; grid-template-columns: 1fr 120px 190px; gap: 14px; align-items: center; padding: 6px 0; border-bottom: 1px solid var(--hair); }
+.ms-name { font-size: 13px; }
+.ms-agency { font-size: 11px; color: var(--slate); }
+.ms-track { display: flex; gap: 4px; }
+.ms-dot { width: 100%; height: 8px; background: var(--wash); }
+.ms-dot.done { background: var(--teal-mid); }
+.ms-dot.now { background: var(--deep); }
+table.mini { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+table.mini td { padding: 7px 0; border-bottom: 1px solid var(--hair); vertical-align: top; }
+.mini-a { font-weight: 500; }
+.mini-b { font-size: 11.5px; color: var(--slate); width: 78px; font-variant-numeric: tabular-nums; }
+.mini-c { color: var(--slate); }
+.change-list { list-style: none; margin: 0; padding: 0; }
+.change-list li { display: grid; grid-template-columns: 44px 66px 1fr; gap: 10px; padding: 9px 0; border-bottom: 1px solid var(--hair); }
+.change-year { font-size: 12px; color: var(--slate); font-variant-numeric: tabular-nums; }
+.change-type { font-size: 10px; letter-spacing: .08em; text-transform: uppercase; color: var(--teal); padding-top: 2px; font-weight: 500; }
+.change-body { display: flex; flex-direction: column; font-size: 12.5px; }
+.change-body span { color: var(--slate); font-size: 12px; }
+
+/* record drawer */
+.scrim { position: fixed; inset: 0; background: rgba(6,48,45,.34); z-index: 900; }
+.record { position: fixed; top: 0; right: 0; bottom: 0; width: min(470px, 94vw); z-index: 901; background: var(--panel); border-left: 1px solid var(--line); overflow-y: auto; padding: 22px 26px 44px; }
+.record-head { display: flex; justify-content: space-between; gap: 14px; align-items: flex-start; }
+.record-head h2 { font-size: 21px; font-weight: 600; margin: 5px 0 4px; line-height: 1.2; letter-spacing: -.015em; }
+.record-sponsor { font-size: 11.5px; color: var(--slate); font-variant-numeric: tabular-nums; }
+.close { background: none; border: 0; font-size: 24px; line-height: 1; color: var(--slate); padding: 0 2px; }
+.record-figure { height: 112px; margin: 18px 0 16px; border: 1px dashed var(--line); background: repeating-linear-gradient(135deg, #F2F9F7 0 9px, #E6F1EE 9px 18px); display: flex; align-items: center; justify-content: center; font-size: 10.5px; letter-spacing: .1em; text-transform: uppercase; color: #86ADA6; }
+.record-money { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 8px; }
+.record-money div { display: flex; flex-direction: column; }
+.record-money > div > span { font-size: 10.5px; letter-spacing: .09em; text-transform: uppercase; color: var(--slate); }
+.record-money strong { font-size: 17px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.record-money .gap { color: var(--teal); }
+.record h3 { font-size: 11px; letter-spacing: .11em; text-transform: uppercase; color: var(--slate); margin: 24px 0 10px; font-weight: 600; }
+.score-grid { display: flex; flex-direction: column; gap: 7px; }
+.score-row { display: grid; grid-template-columns: 1fr 92px 26px; gap: 10px; align-items: center; font-size: 12.5px; }
+.score-bar { height: 7px; background: var(--wash); display: block; }
+.score-bar span { display: block; height: 100%; background: var(--teal); }
+.score-num { font-size: 11.5px; text-align: right; color: var(--slate); font-variant-numeric: tabular-nums; }
+.score-total { display: flex; justify-content: space-between; align-items: baseline; margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--line); }
+.score-total strong { font-size: 19px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.record-ms { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 5px; }
+.record-ms li { font-size: 11px; padding: 3px 8px; border: 1px solid var(--line); color: var(--slate); }
+.record-ms li.done { background: var(--teal-mid); border-color: var(--teal-mid); color: #fff; }
+.kid-list { list-style: none; margin: 0; padding: 0; }
+.kid-list li { display: grid; grid-template-columns: 1fr 70px 62px; gap: 10px; align-items: center; padding: 6px 0; border-bottom: 1px solid var(--hair); font-size: 12.5px; }
+.kid-num { font-size: 11.5px; text-align: right; font-variant-numeric: tabular-nums; }
+.record-foot { font-size: 11.5px; color: var(--slate); margin-top: 24px; padding-top: 12px; border-top: 1px solid var(--line); }
+.rec-kv { display: grid; grid-template-columns: 108px 1fr; gap: 5px 12px; font-size: 12.5px; }
+.rec-kv dt { color: var(--slate); }
+.rec-kv dd { margin: 0; font-variant-numeric: tabular-nums; }
+
+/* hover tooltip */
+.tip {
+  position: fixed; z-index: 1200; pointer-events: none;
+  background: #06302D; color: #E8F5F1; border: 1px solid #0E7C72;
+  padding: 9px 11px; max-width: 268px; font-size: 12px; line-height: 1.42;
+  box-shadow: 0 6px 20px rgba(6,48,45,.24);
+}
+.tip-t { display: block; font-weight: 600; font-size: 12.5px; color: #fff; margin-bottom: 5px; letter-spacing: -.005em; }
+.tip-s { display: block; font-size: 10.5px; letter-spacing: .09em; text-transform: uppercase; color: #7FB8AF; margin: -3px 0 6px; }
+.tip-r { display: flex; justify-content: space-between; gap: 18px; font-variant-numeric: tabular-nums; }
+.tip-r span:first-child { color: #9CC7C0; }
+.tip-r span:last-child { color: #fff; }
+.tip-rule { height: 1px; background: rgba(255,255,255,.16); margin: 6px 0; }
+.tip-bar { height: 5px; background: rgba(255,255,255,.16); margin: 6px 0 2px; }
+.tip-bar span { display: block; height: 100%; }
+.tip-f { display: block; font-size: 10.5px; color: #7FB8AF; margin-top: 6px; }
+.hit { cursor: default; }
+.hit:hover { filter: brightness(1.08); }
+.dot { cursor: pointer; }
+.dot:hover { stroke: #06302D; stroke-width: 1.5; }
+.frontier { position: relative; }
+
+@media (max-width: 980px) {
+  .app { flex-direction: column; }
+  .rail { width: 100%; flex: none; height: auto; position: static; flex-direction: row; align-items: center; overflow-x: auto; }
+  .rail ul { display: flex; }
+  .rail li button { border-left: 0; border-bottom: 3px solid transparent; white-space: nowrap; padding: 12px 14px; }
+  .rail li button.on { border-left: 0; border-bottom-color: var(--teal-br); }
+  .rail li button i { display: none; }
+  .rail-foot { display: none; }
+  .brand { padding: 14px 16px; }
+  .screen { padding: 22px 16px 60px; }
+  .screen-head h1 { font-size: 27px; }
+  .stat-row, .scenario-summary, .chart-grid { grid-template-columns: repeat(1, 1fr); }
+  .stat-row { grid-template-columns: repeat(2, 1fr); }
+  .two-col, .two-col.wide-right { grid-template-columns: 1fr; }
+  .map-shell { grid-template-columns: 1fr; }
+  .map-side { border-right: 0; border-bottom: 1px solid var(--line); }
+  .pick-list li { grid-template-columns: 16px 1fr 74px; }
+  .pick-eff, .pick-actions { display: none; }
+  .gap-item { grid-template-columns: 1fr 76px; }
+  .gap-item .ribbon { display: none; }
+  .ms-list li { grid-template-columns: 1fr 130px; }
+  .ms-agency { display: none; }
+}
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js" crossorigin></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js" crossorigin></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js" crossorigin></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js" crossorigin=""></script>
 </head>
 <body>
 <div id="root"><div class="boot">Loading the 2026 project register&hellip;</div></div>
 <script type="text/babel" data-presets="react">
-const { useState, useMemo, useCallback } = React;
+const { useState, useMemo, useCallback, useEffect, useRef } = React;
 
-
-/* ------------------------------------------------------------------ */
-/*  Demo data: 2026 Priority Freight Projects List (29 top-level)       */
-/*  Cost and status fields follow the published list.                   */
-/*  Criterion values are illustrative placeholders for the demo only.   */
-/* ------------------------------------------------------------------ */
-
-const P = (id, parent, name, state, mode, cost, funded, phase, m, note) => ({
-  id, parent, name, state, mode, cost, funded, phase, m, note,
-});
+/* ================================================================== *
+ *  1. PROJECT DATABASE                                                *
+ *  Names, costs, funding status and hierarchy follow the published     *
+ *  2026 Priority Infrastructure Project List. Coordinates are          *
+ *  approximate corridor midpoints. Criterion scores, grant status and  *
+ *  milestone dates are illustrative demo values.                       *
+ * ================================================================== */
 
 // m = [freight, reliability, safety, connectivity, condition, economic, readiness, leverage]
+const P = (id, parent, name, state, mode, cost, funded, phase, m, sponsor, ll, x) => ({
+  id, parent, name, state, mode, cost, funded, phase, m, sponsor,
+  lat: ll[0], lng: ll[1],
+  grant: x.g, grantStatus: x.gs, match: x.mp, milestone: x.ms, msDate: x.md,
+  agency: x.ag || sponsor,
+});
+
 const DATA = [
-  // --- Completed -----------------------------------------------------
-  P("C1", null, "I-270: James S. McDonnell Blvd. to Bellefontaine Rd.", "MO", "Road", 278, 278, "Complete", [88, 90, 74, 62, 70, 78, 100, 60], "MoDOT"),
-  P("C2", null, "Merchants Bridge replacement over the Mississippi", "MO-IL", "Rail", 222, 222, "Complete", [95, 88, 55, 96, 92, 90, 100, 88], "TRRA"),
-  P("C3", null, "Union Pacific Lenox Tower and track realignment", "IL", "Rail", 10.1, 10.1, "Complete", [80, 84, 50, 88, 74, 68, 100, 70], "Union Pacific"),
-  P("C4", null, "Earth City access improvements", "MO", "Road", 4.1, 4.1, "Complete", [62, 58, 55, 48, 52, 70, 100, 55], "MoDOT"),
-  P("C5", null, "North Park access improvements", "MO", "Road", 3, 3, "Complete", [58, 55, 52, 46, 50, 72, 100, 52], "MoDOT"),
-  P("C6", null, "J.S. McDonnell Connector access improvements", "MO", "Road", 2.4, 2.4, "Complete", [60, 57, 50, 50, 48, 68, 100, 50], "MoDOT"),
+  /* --- Completed ------------------------------------------------- */
+  P("C1", null, "I-270: James S. McDonnell Blvd. to Bellefontaine Rd.", "MO", "Road", 278, 278, "Complete", [88,90,74,62,70,78,100,60], "MoDOT", [38.788,-90.256], {g:"State programme (STIP)", gs:"awarded", mp:20, ms:"Open to traffic", md:"2024 Q4"}),
+  P("C2", null, "Merchants Bridge replacement over the Mississippi", "MO-IL", "Rail", 222, 222, "Complete", [95,88,55,96,92,90,100,88], "TRRA", [38.6455,-90.1795], {g:"CRISI", gs:"awarded", mp:50, ms:"In revenue service", md:"2024 Q3"}),
+  P("C3", null, "Union Pacific Lenox Tower and track realignment", "IL", "Rail", 10.1, 10.1, "Complete", [80,84,50,88,74,68,100,70], "Union Pacific", [38.767,-90.088], {g:"CRISI", gs:"awarded", mp:50, ms:"In revenue service", md:"2023 Q2"}),
+  P("C4", null, "Earth City access improvements", "MO", "Road", 4.1, 4.1, "Complete", [62,58,55,48,52,70,100,55], "MoDOT", [38.762,-90.462], {g:"State programme (STIP)", gs:"awarded", mp:20, ms:"Open to traffic", md:"2023 Q4"}),
+  P("C5", null, "North Park access improvements", "MO", "Road", 3, 3, "Complete", [58,55,52,46,50,72,100,52], "MoDOT", [38.773,-90.319], {g:"State programme (STIP)", gs:"awarded", mp:20, ms:"Open to traffic", md:"2023 Q2"}),
+  P("C6", null, "J.S. McDonnell Connector access improvements", "MO", "Road", 2.4, 2.4, "Complete", [60,57,50,50,48,68,100,50], "MoDOT", [38.771,-90.334], {g:"State programme (STIP)", gs:"awarded", mp:20, ms:"Open to traffic", md:"2023 Q1"}),
 
-  // --- Fully funded --------------------------------------------------
-  P("F1", null, "I-55 improvements, Rte. Z to U.S. Rte. 67", "MO", "Road", 246, 246, "Construction", [84, 86, 72, 58, 66, 74, 95, 62], "MoDOT"),
-  P("F2", null, "IL Rte. 3 Connector", "IL", "Road", 102, 102, "Funded", [78, 72, 64, 80, 60, 86, 90, 74], "IDOT"),
-  P("F3", null, "MacArthur Bridge improvements over the Mississippi", "MO-IL", "Rail", 75, 75, "Funded", [90, 80, 58, 94, 88, 82, 88, 80], "TRRA"),
-  P("F4", null, "I-64: Green Mount Rd. to IL Rte. 158", "IL", "Road", 67.3, 67.3, "Funded", [70, 76, 66, 62, 58, 78, 90, 68], "IDOT"),
-  P("F5", null, "IL Rte. 158 relocation, Rte. 161 to Rte. 177", "IL", "Road", 19.99, 19.99, "Construction", [66, 60, 62, 74, 54, 80, 95, 66], "IDOT"),
+  /* --- Fully funded ---------------------------------------------- */
+  P("F1", null, "I-55 improvements, Rte. Z to U.S. Rte. 67", "MO", "Road", 246, 246, "Construction", [84,86,72,58,66,74,95,62], "MoDOT", [38.352,-90.383], {g:"State programme (STIP)", gs:"awarded", mp:20, ms:"Substantial completion", md:"2027 Q3"}),
+  P("F2", null, "IL Rte. 3 Connector", "IL", "Road", 102, 102, "Funded", [78,72,64,80,60,86,90,74], "IDOT", [38.595,-90.163], {g:"State programme (MYP)", gs:"awarded", mp:20, ms:"Letting", md:"2027 Q1"}),
+  P("F3", null, "MacArthur Bridge improvements over the Mississippi", "MO-IL", "Rail", 75, 75, "Funded", [90,80,58,94,88,82,88,80], "TRRA", [38.6105,-90.1795], {g:"CRISI", gs:"awarded", mp:50, ms:"Notice to proceed", md:"2026 Q4"}),
+  P("F4", null, "I-64: Green Mount Rd. to IL Rte. 158", "IL", "Road", 67.3, 67.3, "Funded", [70,76,66,62,58,78,90,68], "IDOT", [38.532,-89.928], {g:"State programme (MYP)", gs:"awarded", mp:20, ms:"Letting", md:"2027 Q2"}),
+  P("F5", null, "IL Rte. 158 relocation, Rte. 161 to Rte. 177", "IL", "Road", 19.99, 19.99, "Construction", [66,60,62,74,54,80,95,66], "IDOT", [38.528,-89.868], {g:"State programme (MYP)", gs:"awarded", mp:20, ms:"Substantial completion", md:"2027 Q2"}),
 
-  // --- I-270 corridor (parent + 8 children) ---------------------------
-  P("R1", null, "I-270 improvements, I-70 (MO) to IL Rte. 157", "MO-IL", "Road", 1215.7, 786.7, "Partial", [96, 98, 82, 84, 80, 92, 72, 78], "MoDOT / IDOT"),
-  P("R1a", "R1", "Rte. 367 to west of Rte. H (Riverview Dr.)", "MO", "Road", 42, 42, "Funded", [88, 90, 78, 70, 72, 84, 92, 70], "FY26"),
-  P("R1b", "R1", "Chain of Rocks Bridge replacement", "MO-IL", "Road", 496, 496, "Construction", [96, 96, 84, 88, 94, 90, 95, 84], "IDOT / MoDOT"),
-  P("R1c", "R1", "Chain of Rocks Canal to E. of St. Thomas Rd.", "IL", "Road", 104, 60, "Partial", [84, 88, 76, 72, 78, 80, 70, 62], "Interchange and bridge"),
-  P("R1d", "R1", "St. Thomas Rd. to IL Rte. 111", "IL", "Road", 399.6, 14.6, "Partial", [86, 90, 78, 74, 76, 82, 46, 40], "Engineering funded only"),
-  P("R1e", "R1", "IL Rte. 111 at Chain of Rocks Rd. intersection", "IL", "Road", 20.1, 20.1, "Funded", [72, 76, 80, 66, 64, 74, 90, 68], "Pontoon Beach"),
-  P("R1f", "R1", "E. of IL Rte. 111 to E. of I-55/70 resurfacing", "IL", "Road", 93.5, 93.5, "Funded", [76, 70, 72, 60, 86, 68, 92, 66], "IDOT"),
-  P("R1g", "R1", "Riverview Dr. interchange", "MO", "Road", 35.4, 35.4, "Construction", [80, 82, 74, 76, 68, 82, 95, 72], "MoDOT"),
-  P("R1h", "R1", "I-270 at IL Rte. 111 interchange", "IL", "Road", 25.1, 25.1, "Construction", [78, 80, 76, 72, 66, 78, 95, 70], "IDOT"),
+  /* --- I-270 corridor -------------------------------------------- */
+  P("R1", null, "I-270 improvements, I-70 (MO) to IL Rte. 157", "MO-IL", "Road", 1215.7, 786.7, "Partial", [96,98,82,84,80,92,72,78], "MoDOT / IDOT", [38.766,-90.180], {g:"MPDG / INFRA", gs:"applied", mp:40, ms:"Corridor programming decision", md:"2027 Q1", ag:"Bi-state (MoDOT / IDOT)"}),
+  P("R1a", "R1", "Rte. 367 to west of Rte. H (Riverview Dr.)", "MO", "Road", 42, 42, "Funded", [88,90,78,70,72,84,92,70], "MoDOT", [38.784,-90.213], {g:"State programme (STIP)", gs:"awarded", mp:20, ms:"Letting", md:"2026 Q4"}),
+  P("R1b", "R1", "Chain of Rocks Bridge replacement", "MO-IL", "Road", 496, 496, "Construction", [96,96,84,88,94,90,95,84], "IDOT / MoDOT", [38.7605,-90.1785], {g:"Bridge Investment Program", gs:"awarded", mp:20, ms:"Substantial completion", md:"2029 Q2"}),
+  P("R1c", "R1", "Chain of Rocks Canal to E. of St. Thomas Rd.", "IL", "Road", 104, 60, "Partial", [84,88,76,72,78,80,70,62], "IDOT", [38.755,-90.128], {g:"Bridge Investment Program", gs:"applied", mp:20, ms:"Design complete", md:"2027 Q3"}),
+  P("R1d", "R1", "St. Thomas Rd. to IL Rte. 111", "IL", "Road", 399.6, 14.6, "Partial", [86,90,78,74,76,82,46,40], "IDOT", [38.752,-90.100], {g:"MPDG / INFRA", gs:"eligible", mp:40, ms:"Engineering underway", md:"2028 Q1"}),
+  P("R1e", "R1", "IL Rte. 111 at Chain of Rocks Rd. intersection", "IL", "Road", 20.1, 20.1, "Funded", [72,76,80,66,64,74,90,68], "IDOT", [38.746,-90.075], {g:"State programme (MYP)", gs:"awarded", mp:20, ms:"Letting", md:"2027 Q1"}),
+  P("R1f", "R1", "E. of IL Rte. 111 to E. of I-55/70 resurfacing", "IL", "Road", 93.5, 93.5, "Funded", [76,70,72,60,86,68,92,66], "IDOT", [38.740,-90.045], {g:"State programme (MYP)", gs:"awarded", mp:20, ms:"Letting", md:"2027 Q2"}),
+  P("R1g", "R1", "Riverview Dr. interchange", "MO", "Road", 35.4, 35.4, "Construction", [80,82,74,76,68,82,95,72], "MoDOT", [38.780,-90.196], {g:"State programme (STIP)", gs:"awarded", mp:20, ms:"Substantial completion", md:"2027 Q4"}),
+  P("R1h", "R1", "I-270 at IL Rte. 111 interchange", "IL", "Road", 25.1, 25.1, "Construction", [78,80,76,72,66,78,95,70], "IDOT", [38.747,-90.078], {g:"State programme (MYP)", gs:"awarded", mp:20, ms:"Substantial completion", md:"2027 Q3"}),
 
-  // --- I-70 corridor (parent + segments) ------------------------------
-  P("R2", null, "I-70: Wentzville to Stan Musial Veterans Memorial Bridge", "MO", "Road", 1181, 754, "Partial", [94, 96, 84, 76, 82, 90, 66, 80], "MoDOT"),
-  P("R2a", "R2", "Segment 1: Warren County to Wentzville (US 61)", "MO", "Road", 634, 634, "Funded", [90, 94, 82, 66, 78, 86, 92, 82], "MoDOT"),
-  P("R2b", "R2", "Segment 2: Bryan Rd. to Mid Rivers Mall Dr.", "MO", "Road", 20, 0, "Unfunded", [78, 84, 76, 62, 70, 78, 58, 44], "Interchange and outer road"),
-  P("R2c", "R2", "Segment 2: Cave Springs Rd. to Convention Center Blvd.", "MO", "Road", 62, 62, "Funded", [80, 82, 74, 60, 72, 76, 96, 70], "Substantially complete"),
-  P("R2d", "R2", "Segment 4: Missouri River to North Hanley Rd.", "MO", "Road", 175, 0, "Unfunded", [88, 90, 80, 70, 78, 84, 52, 42], "MoDOT"),
-  P("R2e", "R2", "Segment 4: Missouri River to US 67 bridges", "MO", "Road", 58, 58, "Funded", [82, 78, 76, 64, 90, 74, 90, 68], "Largely bridge work"),
-  P("R2f", "R2", "Segment 5: City limits to Benton St.", "MO", "Road", 152, 0, "Unfunded", [86, 88, 82, 74, 80, 86, 50, 40], "MoDOT"),
-  P("R2g", "R2", "Segment 5: Benton St. to Illinois state line", "MO", "Road", 80, 0, "Unfunded", [88, 86, 80, 82, 82, 84, 50, 40], "MoDOT"),
+  /* --- I-70 corridor --------------------------------------------- */
+  P("R2", null, "I-70: Wentzville to Stan Musial Veterans Memorial Bridge", "MO", "Road", 1181, 754, "Partial", [94,96,84,76,82,90,66,80], "MoDOT", [38.760,-90.560], {g:"MPDG / INFRA", gs:"applied", mp:40, ms:"Corridor programming decision", md:"2027 Q2"}),
+  P("R2a", "R2", "Segment 1: Warren County to Wentzville (US 61)", "MO", "Road", 634, 634, "Funded", [90,94,82,66,78,86,92,82], "MoDOT", [38.808,-90.905], {g:"State programme (STIP)", gs:"awarded", mp:20, ms:"Under construction", md:"2028 Q4"}),
+  P("R2b", "R2", "Segment 2: Bryan Rd. to Mid Rivers Mall Dr.", "MO", "Road", 20, 0, "Unfunded", [78,84,76,62,70,78,58,44], "MoDOT", [38.789,-90.700], {g:"RAISE", gs:"eligible", mp:20, ms:"Concept scoping", md:"2028 Q2"}),
+  P("R2c", "R2", "Segment 2: Cave Springs Rd. to Convention Center Blvd.", "MO", "Road", 62, 62, "Funded", [80,82,74,60,72,76,96,70], "MoDOT", [38.788,-90.560], {g:"State programme (STIP)", gs:"awarded", mp:20, ms:"Substantial completion", md:"2026 Q4"}),
+  P("R2d", "R2", "Segment 4: Missouri River to North Hanley Rd.", "MO", "Road", 175, 0, "Unfunded", [88,90,80,70,78,84,52,42], "MoDOT", [38.735,-90.360], {g:"MPDG / INFRA", gs:"eligible", mp:40, ms:"Environmental scoping", md:"2028 Q3"}),
+  P("R2e", "R2", "Segment 4: Missouri River to US 67 bridges", "MO", "Road", 58, 58, "Funded", [82,78,76,64,90,74,90,68], "MoDOT", [38.745,-90.420], {g:"Bridge Investment Program", gs:"awarded", mp:20, ms:"Letting", md:"2027 Q1"}),
+  P("R2f", "R2", "Segment 5: City limits to Benton St.", "MO", "Road", 152, 0, "Unfunded", [86,88,82,74,80,86,50,40], "MoDOT", [38.660,-90.230], {g:"MPDG / INFRA", gs:"eligible", mp:40, ms:"Environmental scoping", md:"2028 Q4"}),
+  P("R2g", "R2", "Segment 5: Benton St. to Illinois state line", "MO", "Road", 80, 0, "Unfunded", [88,86,80,82,82,84,50,40], "MoDOT", [38.640,-90.190], {g:"MPDG / INFRA", gs:"eligible", mp:40, ms:"Environmental scoping", md:"2029 Q1"}),
 
-  // --- Other partially programmed -------------------------------------
-  P("R3", null, "America's Central Port intermodal improvements", "IL", "Port", 376.9, 148, "Partial", [92, 74, 54, 96, 70, 94, 68, 72], "America's Central Port"),
-  P("R4", null, "IL Rte. 3 access improvements", "IL", "Road", 335.5, 120, "Partial", [86, 78, 70, 88, 66, 92, 64, 66], "IDOT"),
-  P("R5", null, "I-44: Oklahoma state line through Franklin County", "MO", "Road", 200, 74, "Partial", [82, 84, 78, 58, 76, 76, 60, 58], "St. Louis region share"),
-  P("R6", null, "I-255 / Davis Street Ferry Rd. interchange", "IL", "Road", 121.4, 44, "Partial", [80, 76, 72, 78, 62, 84, 62, 60], "IDOT"),
-  P("R7", null, "Madison Yard expansion and St. Clair Co. rail", "IL", "Rail", 98, 36, "Partial", [94, 72, 52, 98, 68, 90, 66, 74], "Multimodal freight yard"),
-  P("R8", null, "Mississippi River port development projects", "MO", "Port", 59, 22, "Partial", [90, 66, 48, 94, 72, 88, 64, 70], "Multiple sponsors"),
-  P("R9", null, "Lambert International Airport cargo improvements", "MO", "Air", 49.1, 20, "Partial", [76, 62, 46, 90, 60, 86, 70, 64], "STL"),
-  P("R10", null, "Kaskaskia Regional Port District improvements", "IL", "Port", 45.5, 18, "Partial", [84, 58, 44, 88, 66, 82, 66, 68], "KRPD"),
-  P("R11", null, "North Riverfront Commerce Corridor improvements", "MO", "Road", 33.7, 17.7, "Partial", [82, 70, 64, 86, 64, 88, 74, 62], "City of St. Louis"),
-  P("R11a", "R11", "Hall St.: Grand Ave. to Adelaide Ave.", "MO", "Road", 4.3, 4.3, "Complete", [76, 66, 62, 80, 60, 82, 100, 60], "City of St. Louis"),
-  P("R11b", "R11", "Hall St.: Adelaide Ave. to Riverview Dr.", "MO", "Road", 17, 6, "Partial", [80, 70, 66, 84, 62, 86, 62, 56], "City of St. Louis"),
-  P("R11c", "R11", "Riverview Dr.: Hall St. to I-270", "MO", "Road", 5.8, 5.8, "Complete", [78, 68, 64, 82, 58, 80, 100, 58], "City of St. Louis"),
-  P("R11d", "R11", "Branch St. improvements", "MO", "Road", 5, 0, "Unfunded", [70, 62, 60, 76, 56, 78, 56, 44], "City of St. Louis"),
-  P("R11e", "R11", "I-70 westbound off-ramp to North Broadway", "MO", "Road", 1.6, 1.6, "Complete", [68, 64, 66, 74, 54, 74, 100, 56], "City of St. Louis"),
+  /* --- Other partially programmed --------------------------------- */
+  P("R3", null, "America's Central Port intermodal improvements", "IL", "Port", 376.9, 148, "Partial", [92,74,54,96,70,94,68,72], "America's Central Port", [38.706,-90.135], {g:"Port Infrastructure Development", gs:"applied", mp:20, ms:"Phase 2 design", md:"2027 Q2"}),
+  P("R4", null, "IL Rte. 3 access improvements", "IL", "Road", 335.5, 120, "Partial", [86,78,70,88,66,92,64,66], "IDOT", [38.570,-90.160], {g:"MPDG / INFRA", gs:"applied", mp:40, ms:"Segment design", md:"2027 Q3"}),
+  P("R5", null, "I-44 improvements, Oklahoma state line through Franklin County", "MO", "Road", 200, 74, "Partial", [82,84,78,58,76,76,60,58], "MoDOT", [38.420,-90.980], {g:"State programme (STIP)", gs:"applied", mp:20, ms:"Segment programming", md:"2027 Q4"}),
+  P("R6", null, "I-255 / Davis Street Ferry Rd. interchange", "IL", "Road", 121.4, 44, "Partial", [80,76,72,78,62,84,62,60], "IDOT", [38.462,-90.140], {g:"MPDG / INFRA", gs:"eligible", mp:40, ms:"Design", md:"2028 Q1"}),
+  P("R7", null, "Madison Yard expansion and St. Clair Co. rail improvements", "IL", "Rail", 98, 36, "Partial", [94,72,52,98,68,90,66,74], "TRRA / St. Clair Co.", [38.679,-90.155], {g:"CRISI", gs:"applied", mp:50, ms:"Phase 1 construction", md:"2027 Q2"}),
+  P("R8", null, "Mississippi River port development projects", "MO", "Port", 59, 22, "Partial", [90,66,48,94,72,88,64,70], "Port of Metro St. Louis", [38.545,-90.240], {g:"Port Infrastructure Development", gs:"applied", mp:20, ms:"Terminal design", md:"2027 Q3"}),
+  P("R9", null, "Lambert International Airport cargo improvements", "MO", "Air", 49.1, 20, "Partial", [76,62,46,90,60,86,70,64], "STL Airport Authority", [38.748,-90.368], {g:"Airport Improvement Program", gs:"applied", mp:25, ms:"Apron design", md:"2027 Q1"}),
+  P("R10", null, "Kaskaskia Regional Port District improvements", "IL", "Port", 45.5, 18, "Partial", [84,58,44,88,66,82,66,68], "KRPD", [38.128,-89.902], {g:"Port Infrastructure Development", gs:"applied", mp:20, ms:"Harbour design", md:"2027 Q2"}),
+  P("R11", null, "North Riverfront Commerce Corridor improvements", "MO", "Road", 33.7, 17.7, "Partial", [82,70,64,86,64,88,74,62], "City of St. Louis", [38.688,-90.203], {g:"RAISE", gs:"applied", mp:20, ms:"Phase 2 letting", md:"2027 Q2"}),
+  P("R11a", "R11", "Hall St.: Grand Ave. to Adelaide Ave.", "MO", "Road", 4.3, 4.3, "Complete", [76,66,62,80,60,82,100,60], "City of St. Louis", [38.679,-90.202], {g:"RAISE", gs:"awarded", mp:20, ms:"Open to traffic", md:"2024 Q2"}),
+  P("R11b", "R11", "Hall St.: Adelaide Ave. to Riverview Dr.", "MO", "Road", 17, 6, "Partial", [80,70,66,84,62,86,62,56], "City of St. Louis", [38.700,-90.198], {g:"RAISE", gs:"applied", mp:20, ms:"Design", md:"2027 Q1"}),
+  P("R11c", "R11", "Riverview Dr.: Hall St. to I-270", "MO", "Road", 5.8, 5.8, "Complete", [78,68,64,82,58,80,100,58], "City of St. Louis", [38.740,-90.196], {g:"RAISE", gs:"awarded", mp:20, ms:"Open to traffic", md:"2024 Q4"}),
+  P("R11d", "R11", "Branch St. improvements", "MO", "Road", 5, 0, "Unfunded", [70,62,60,76,56,78,56,44], "City of St. Louis", [38.652,-90.196], {g:"RAISE", gs:"eligible", mp:20, ms:"Concept scoping", md:"2028 Q1"}),
+  P("R11e", "R11", "I-70 westbound off-ramp to North Broadway relocation", "MO", "Road", 1.6, 1.6, "Complete", [68,64,66,74,54,74,100,56], "City of St. Louis", [38.645,-90.192], {g:"State programme (STIP)", gs:"awarded", mp:20, ms:"Open to traffic", md:"2023 Q3"}),
 
-  // --- Concept development or planning ---------------------------------
-  P("D1", null, "New terminal, Lambert International Airport", "MO", "Air", 3000, 900, "Partial", [72, 58, 44, 92, 74, 96, 40, 66], "STL"),
-  P("D2", null, "Martin Luther King Bridge replacement", "MO-IL", "Road", 629, 190, "Partial", [84, 82, 78, 88, 96, 82, 42, 58], "Study advancing"),
-  P("D3", null, "I-55/I-70 add lanes, I-255 to I-270", "IL", "Road", 400, 110, "Partial", [88, 92, 76, 70, 68, 80, 46, 54], "IDOT"),
-  P("D4", null, "MidAmerica St. Louis Airport distribution improvements", "IL", "Air", 45, 0, "Unfunded", [70, 54, 42, 86, 58, 88, 48, 50], "St. Clair County"),
-  P("D5", null, "Lambert International Airport access improvements", "MO", "Road", 37.5, 0, "Unfunded", [68, 64, 58, 84, 56, 80, 50, 48], "STL"),
-  P("D6", null, "I-255 / Fish Lake (Ramsey Rd.) interchange", "IL", "Road", 27, 0, "Unfunded", [72, 70, 68, 74, 58, 82, 52, 50], "IDOT"),
-  P("D7", null, "Downtown Mississippi River bridge interchange studies", "MO-IL", "Road", 0, 0, "Study", [80, 84, 74, 86, 88, 78, 30, 46], "Cost to be determined"),
+  /* --- Concept development or planning ----------------------------- */
+  P("D1", null, "New terminal, Lambert International Airport", "MO", "Air", 3000, 900, "Partial", [72,58,44,92,74,96,40,66], "STL Airport Authority", [38.751,-90.373], {g:"Airport Improvement Program", gs:"applied", mp:25, ms:"Programme definition", md:"2028 Q2"}),
+  P("D2", null, "Martin Luther King Bridge replacement", "MO-IL", "Road", 629, 190, "Partial", [84,82,78,88,96,82,42,58], "Bi-state", [38.6335,-90.1815], {g:"Bridge Investment Program", gs:"applied", mp:20, ms:"Feasibility complete", md:"2028 Q1", ag:"Bi-state (MoDOT / IDOT)"}),
+  P("D3", null, "I-55/I-70 add lanes, I-255 to I-270", "IL", "Road", 400, 110, "Partial", [88,92,76,70,68,80,46,54], "IDOT", [38.680,-90.020], {g:"MPDG / INFRA", gs:"eligible", mp:40, ms:"Environmental review", md:"2028 Q3"}),
+  P("D4", null, "MidAmerica St. Louis Airport distribution improvements", "IL", "Air", 45, 0, "Unfunded", [70,54,42,86,58,88,48,50], "St. Clair County", [38.545,-89.835], {g:"Airport Improvement Program", gs:"eligible", mp:25, ms:"Concept scoping", md:"2028 Q2"}),
+  P("D5", null, "Lambert International Airport access improvements", "MO", "Road", 37.5, 0, "Unfunded", [68,64,58,84,56,80,50,48], "STL Airport Authority", [38.740,-90.352], {g:"RAISE", gs:"eligible", mp:20, ms:"Concept scoping", md:"2028 Q1"}),
+  P("D6", null, "I-255 / Fish Lake (Ramsey Rd.) interchange", "IL", "Road", 27, 0, "Unfunded", [72,70,68,74,58,82,52,50], "IDOT", [38.437,-90.098], {g:"RAISE", gs:"eligible", mp:20, ms:"Concept scoping", md:"2028 Q3"}),
+  P("D7", null, "Downtown Mississippi River bridge interchange studies", "MO-IL", "Road", 0, 0, "Study", [80,84,74,86,88,78,30,46], "Bi-state", [38.628,-90.185], {g:"Planning funds", gs:"eligible", mp:20, ms:"Scope of study", md:"2027 Q2", ag:"Bi-state (MoDOT / IDOT)"}),
 ];
+
+/* ================================================================== *
+ *  2. SELECTION CRITERIA (Task 5)                                     *
+ * ================================================================== */
 
 const CRITERIA = [
-  { key: "freight", label: "Freight volume and value served", w: 20, unit: "Annual truck and rail tonnage on the facility" },
-  { key: "reliability", label: "Reliability and bottleneck relief", w: 15, unit: "Truck travel time reliability index" },
-  { key: "safety", label: "Truck safety performance", w: 15, unit: "Truck-involved crash rate against state average" },
-  { key: "connectivity", label: "Multimodal connectivity", w: 10, unit: "Direct access to port, rail, or air cargo" },
-  { key: "condition", label: "Asset condition", w: 10, unit: "Bridge and pavement condition rating" },
-  { key: "economic", label: "Economic and industrial impact", w: 15, unit: "Jobs and developable acreage served" },
-  { key: "readiness", label: "Delivery readiness", w: 10, unit: "Environmental clearance, design, right of way" },
-  { key: "leverage", label: "Funding leverage", w: 5, unit: "Non-regional match secured per dollar requested" },
+  { key:"freight",      label:"Freight volume and value served", w:20, unit:"Annual truck and rail tonnage on the facility" },
+  { key:"reliability",  label:"Reliability and bottleneck relief", w:15, unit:"Truck travel time reliability index" },
+  { key:"safety",       label:"Truck safety performance",          w:15, unit:"Truck-involved crash rate against state average" },
+  { key:"connectivity", label:"Multimodal connectivity",           w:10, unit:"Direct access to port, rail, or air cargo" },
+  { key:"condition",    label:"Asset condition",                   w:10, unit:"Bridge and pavement condition rating" },
+  { key:"economic",     label:"Economic and industrial impact",    w:15, unit:"Jobs and developable acreage within the ISAs" },
+  { key:"readiness",    label:"Delivery readiness",                w:10, unit:"Environmental clearance, design, right of way" },
+  { key:"leverage",     label:"Funding leverage",                  w:5,  unit:"Non-regional match secured per dollar requested" },
 ];
 
-const MODES = ["Road", "Rail", "Port", "Air"];
+const MODES  = ["Road", "Rail", "Port", "Air"];
 const STATES = ["MO", "IL", "MO-IL"];
 const PHASES = ["Complete", "Construction", "Funded", "Partial", "Unfunded", "Study"];
 
-/* ------------------------------------------------------------------ */
-/*  Helpers                                                            */
-/* ------------------------------------------------------------------ */
+const GRANT_PROGRAMS = [
+  { name:"MPDG / INFRA",                  cycle:"Autumn",  match:"40% non-federal typical" },
+  { name:"RAISE",                         cycle:"Winter",  match:"20% non-federal" },
+  { name:"CRISI",                         cycle:"Spring",  match:"50% non-federal" },
+  { name:"Port Infrastructure Development", cycle:"Spring", match:"20% non-federal" },
+  { name:"Bridge Investment Program",      cycle:"Autumn",  match:"20% non-federal" },
+  { name:"Airport Improvement Program",    cycle:"Rolling", match:"25% sponsor share" },
+  { name:"State programme (STIP)",         cycle:"Rolling", match:"20% state or local" },
+  { name:"State programme (MYP)",          cycle:"Rolling", match:"20% state or local" },
+  { name:"Planning funds",                 cycle:"Rolling", match:"20% local" },
+];
+
+/* ================================================================== *
+ *  3. GIS OVERLAY DATA                                                *
+ *  Demo geometry. ISA boundaries are simplified illustrative extents,  *
+ *  not the adopted 2013 boundaries. Corridor volumes and crash counts  *
+ *  are placeholders standing in for the Task 3 data acquisition.       *
+ * ================================================================== */
+
+const ISA_AREAS = [
+  { name:"Earth City / Riverport",      acres:2450, box:[[38.745,-90.485],[38.785,-90.435]] },
+  { name:"Hazelwood / Lambert North",   acres:3100, box:[[38.755,-90.395],[38.795,-90.300]] },
+  { name:"North Riverfront",            acres:1870, box:[[38.655,-90.215],[38.730,-90.180]] },
+  { name:"Granite City / Madison",      acres:2960, box:[[38.680,-90.165],[38.735,-90.100]] },
+  { name:"Chesterfield Valley",         acres:1240, box:[[38.640,-90.610],[38.680,-90.520]] },
+  { name:"Fenton / Valley Park",        acres:980,  box:[[38.480,-90.480],[38.530,-90.400]] },
+  { name:"Edwardsville / I-55 corridor",acres:2210, box:[[38.755,-90.010],[38.815,-89.930]] },
+  { name:"Cahokia Heights / Sauget",    acres:1660, box:[[38.545,-90.190],[38.605,-90.140]] },
+  { name:"MidAmerica / Scott AFB",      acres:1420, box:[[38.520,-89.870],[38.570,-89.790]] },
+];
+
+const CORRIDORS = [
+  { name:"I-70 (Missouri)", aadtt:12500, path:[[38.808,-90.905],[38.788,-90.700],[38.760,-90.520],[38.735,-90.360],[38.680,-90.250],[38.640,-90.190]] },
+  { name:"I-270 loop",      aadtt:15200, path:[[38.788,-90.470],[38.790,-90.330],[38.784,-90.213],[38.760,-90.178],[38.750,-90.100],[38.740,-90.020]] },
+  { name:"I-55 (Missouri)", aadtt:9800,  path:[[38.640,-90.200],[38.520,-90.310],[38.352,-90.383],[38.230,-90.400]] },
+  { name:"I-64 (Illinois)", aadtt:8600,  path:[[38.625,-90.170],[38.590,-90.060],[38.560,-89.980],[38.532,-89.928],[38.528,-89.860]] },
+  { name:"I-44 (Missouri)", aadtt:11200, path:[[38.630,-90.230],[38.540,-90.480],[38.480,-90.700],[38.420,-90.980]] },
+  { name:"I-255 (Illinois)",aadtt:7400,  path:[[38.740,-90.020],[38.640,-90.010],[38.540,-90.060],[38.462,-90.140],[38.437,-90.098]] },
+  { name:"IL Rte. 3",       aadtt:6300,  path:[[38.760,-90.130],[38.680,-90.150],[38.595,-90.163],[38.540,-90.180],[38.480,-90.220]] },
+  { name:"I-55/70 (Illinois)",aadtt:10400,path:[[38.640,-90.170],[38.680,-90.060],[38.720,-89.990],[38.790,-89.940]] },
+];
+
+const GATEWAYS = [
+  { name:"Port of Metropolitan St. Louis", mt:5.8, ll:[38.630,-90.190] },
+  { name:"America's Central Port",         mt:4.2, ll:[38.706,-90.135] },
+  { name:"Madison Yard (TRRA)",            mt:3.1, ll:[38.679,-90.155] },
+  { name:"Kaskaskia Regional Port",        mt:2.6, ll:[38.128,-89.902] },
+  { name:"Granite City rail and steel",    mt:2.2, ll:[38.712,-90.120] },
+  { name:"Jefferson County terminals",     mt:1.4, ll:[38.400,-90.375] },
+  { name:"Lambert air cargo",              mt:0.18, ll:[38.748,-90.368] },
+  { name:"MidAmerica air cargo",           mt:0.05, ll:[38.545,-89.835] },
+];
+
+const HOTSPOTS = [
+  { name:"I-55 / I-44 downtown split",        crashes:51, ll:[38.612,-90.212] },
+  { name:"I-270 at Riverview Dr. weave",      crashes:42, ll:[38.780,-90.196] },
+  { name:"I-70 at Blanchette Bridge",         crashes:38, ll:[38.782,-90.500] },
+  { name:"Chain of Rocks Canal bridge",       crashes:34, ll:[38.755,-90.128] },
+  { name:"I-255 at Davis Street Ferry Rd.",   crashes:31, ll:[38.462,-90.140] },
+  { name:"IL Rte. 3 at Sauget",               crashes:29, ll:[38.588,-90.170] },
+  { name:"I-64 at Green Mount interchange",   crashes:26, ll:[38.532,-89.928] },
+  { name:"I-44 at Six Flags",                 crashes:24, ll:[38.510,-90.660] },
+  { name:"Hall St. at Grand Ave.",            crashes:22, ll:[38.679,-90.202] },
+  { name:"Merchants Bridge approach",         crashes:18, ll:[38.652,-90.185] },
+];
+
+const MILESTONES = ["Concept", "Study", "Engineering", "Right of way", "Funding secured", "Letting", "Construction", "Open"];
+
+const CHANGES = [
+  { y:"2026", t:"Added",   p:"I-44 improvements, Oklahoma state line through Franklin County", n:"New entry at $200M regional share" },
+  { y:"2026", t:"Moved",   p:"Merchants Bridge replacement", n:"Partially funded to completed" },
+  { y:"2026", t:"Revised", p:"I-270, I-70 to IL Rte. 157", n:"Programme cost restated to $1.2B across eight segments" },
+  { y:"2025", t:"Moved",   p:"I-55 improvements, Rte. Z to U.S. Rte. 67", n:"Fully funded, construction underway" },
+  { y:"2025", t:"Added",   p:"New terminal, Lambert International Airport", n:"Entered concept development at $3B" },
+];
+
+/* ================================================================== *
+ *  4. HELPERS AND THE SCORING ENGINE                                  *
+ * ================================================================== */
+
+const SCALE = ["#06403C", "#0E7C72", "#17968B", "#4FBBAC", "#8FD3C8", "#C2DAD5", "#E6F1EE"];
 
 const money = (m) => {
   if (m === 0) return "TBD";
@@ -121,83 +507,77 @@ const money = (m) => {
   if (m >= 100) return "$" + m.toFixed(0) + "M";
   return "$" + m.toFixed(1) + "M";
 };
-
 const gapOf = (p) => Math.max(0, p.cost - p.funded);
 
 const PHASE_COLOR = {
-  Complete: "#06403C",
-  Construction: "#0E7C72",
-  Funded: "#17968B",
-  Partial: "#4FBBAC",
-  Unfunded: "#7FA7A1",
-  Study: "#9BB3AF",
+  Complete: "#06403C", Construction: "#0E7C72", Funded: "#17968B",
+  Partial: "#4FBBAC", Unfunded: "#7FA7A1", Study: "#9BB3AF",
 };
 
 function scoreOf(p, weights) {
   let s = 0, tw = 0;
-  CRITERIA.forEach((c, i) => {
-    s += (p.m[i] || 0) * weights[c.key];
-    tw += weights[c.key];
-  });
+  CRITERIA.forEach((c, i) => { s += (p.m[i] || 0) * weights[c.key]; tw += weights[c.key]; });
   return tw === 0 ? 0 : s / tw;
 }
-
-// Benefit relative to the money still being asked for.
-function valueIndex(p, weights, denominator) {
-  const s = scoreOf(p, weights);
-  const c = denominator === "gap" ? gapOf(p) : p.cost;
-  if (c <= 0) return s;
-  return (s * 100) / Math.max(c, 1);
+function valueIndex(p, weights) {
+  const g = gapOf(p);
+  if (g <= 0) return scoreOf(p, weights);
+  return (scoreOf(p, weights) * 100) / Math.max(g, 1);
 }
-
-// Ranking basis: raw benefit, or benefit bought per $100M still unfunded.
 function rankValue(p, weights, basis) {
-  return basis === "benefit" ? scoreOf(p, weights) : valueIndex(p, weights, "gap");
+  return basis === "benefit" ? scoreOf(p, weights) : valueIndex(p, weights);
 }
 
-/* Knapsack over the unfunded gap, $5M granularity. */
+/* Knapsack over unfunded gaps, $5M granularity. */
 function selectPortfolio(items, budgetM, weights) {
-  const G = 5;
-  const B = Math.floor(budgetM / G);
+  const G = 5, B = Math.max(0, Math.floor(budgetM / G));
   const costs = items.map((p) => Math.max(1, Math.round(gapOf(p) / G)));
   const vals = items.map((p) => scoreOf(p, weights));
   const dp = new Float64Array(B + 1);
   const keep = [];
   for (let i = 0; i < items.length; i++) {
-    const row = new Uint8Array(B + 1);
-    const ci = costs[i], vi = vals[i];
+    const row = new Uint8Array(B + 1), ci = costs[i], vi = vals[i];
     for (let b = B; b >= ci; b--) {
       const cand = dp[b - ci] + vi;
       if (cand > dp[b] + 1e-9) { dp[b] = cand; row[b] = 1; }
     }
     keep.push(row);
   }
-  let b = B;
-  const chosen = new Set();
+  let b = B; const chosen = new Set();
   for (let i = items.length - 1; i >= 0; i--) {
-    if (keep[i][b]) { chosen.add(items[i].id); b -= costs[i]; }
+    if (keep[i] && keep[i][b]) { chosen.add(items[i].id); b -= costs[i]; }
   }
-  return { chosen, total: dp[B] };
+  return { chosen };
 }
 
-/* ------------------------------------------------------------------ */
-/*  Small presentational pieces                                        */
-/* ------------------------------------------------------------------ */
+function milestoneIndex(p) {
+  switch (p.phase) {
+    case "Complete": return 8;
+    case "Construction": return 7;
+    case "Funded": return 5;
+    case "Partial": return 4;
+    case "Unfunded": return 2;
+    default: return 1;
+  }
+}
 
-function Ribbon({ project, height = 6 }) {
+/* ================================================================== *
+ *  5. SMALL PRESENTATIONAL PIECES                                     *
+ * ================================================================== */
+
+function Ribbon({ project, height = 6, weights, rank }) {
+  const tip = useTip();
   const total = project.cost || 1;
   const done = project.phase === "Complete" ? project.funded : 0;
   const funded = project.funded - done;
   const gap = gapOf(project);
-  const seg = (v, color, title) =>
-    v <= 0 ? null : (
-      <span
-        style={{ width: (v / total) * 100 + "%", background: color, height }}
-        title={title}
-      />
-    );
+  const seg = (v, color, title) => v <= 0 ? null :
+    <span style={{ width: (v / total) * 100 + "%", background: color, height }} title={title} />;
+  const hover = weights ? hoverProps(tip, () => (
+    <ProjectTip p={project} weights={weights} rank={rank} />
+  )) : {};
   return (
-    <span className="ribbon" style={{ height }}>
+    <span className="ribbon" style={{ height }} {...hover}>
       {seg(done, "#06403C", "Complete")}
       {seg(funded, "#17968B", "Funded")}
       {seg(gap, "#C2DAD5", "Gap")}
@@ -215,32 +595,335 @@ function Stat({ label, value, sub }) {
   );
 }
 
-function Tag({ children, tone }) {
-  return <span className="tag" style={{ borderColor: tone, color: tone }}>{children}</span>;
+const Tag = ({ children, tone }) =>
+  <span className="tag" style={{ borderColor: tone, color: tone }}>{children}</span>;
+
+function Legend({ items }) {
+  return (
+    <div className="legend">
+      {items.map((i) => <span key={i.label}><i style={{ background: i.color }} />{i.label}</span>)}
+    </div>
+  );
 }
 
-/* ------------------------------------------------------------------ */
-/*  Screens                                                            */
-/* ------------------------------------------------------------------ */
+/* ================================================================== *
+ *  6. HOVER TOOLTIP INFRASTRUCTURE                                    *
+ * ================================================================== */
 
-function Overview({ tops, onOpen }) {
+const TipCtx = React.createContext(null);
+const useTip = () => React.useContext(TipCtx);
+
+function TipProvider({ children }) {
+  const [tip, setTip] = useState(null);
+  const api = useMemo(() => ({
+    show: (node, e) => setTip({ node, x: e.clientX, y: e.clientY }),
+    move: (e) => setTip((t) => (t ? { ...t, x: e.clientX, y: e.clientY } : t)),
+    hide: () => setTip(null),
+  }), []);
+  let style = null;
+  if (tip) {
+    const vw = typeof window !== "undefined" ? window.innerWidth : 1200;
+    const vh = typeof window !== "undefined" ? window.innerHeight : 800;
+    const flipX = tip.x > vw - 300;
+    const flipY = tip.y > vh - 190;
+    style = {
+      left: flipX ? undefined : tip.x + 14,
+      right: flipX ? vw - tip.x + 14 : undefined,
+      top: flipY ? undefined : tip.y + 14,
+      bottom: flipY ? vh - tip.y + 14 : undefined,
+    };
+  }
+  return (
+    <TipCtx.Provider value={api}>
+      {children}
+      {tip && <div className="tip" style={style} role="tooltip">{tip.node}</div>}
+    </TipCtx.Provider>
+  );
+}
+
+/* Attach hover handlers to any SVG shape. `build` returns the tooltip body. */
+function hoverProps(tip, build) {
+  if (!tip) return {};
+  return {
+    onMouseEnter: (e) => tip.show(build(), e),
+    onMouseMove: (e) => tip.move(e),
+    onMouseLeave: () => tip.hide(),
+  };
+}
+
+const TipRow = ({ k, v }) => <span className="tip-r"><span>{k}</span><span>{v}</span></span>;
+
+/* Full project card, used by the scatter and anywhere a project is hovered. */
+function ProjectTip({ p, weights, rank, extra }) {
+  const g = gapOf(p);
+  return (
+    <>
+      <span className="tip-t">{p.name}</span>
+      <span className="tip-s">{p.state === "MO-IL" ? "Bi-state" : p.state} &middot; {p.mode} &middot; {p.phase}</span>
+      <TipRow k="Total cost" v={money(p.cost)} />
+      <TipRow k="Committed" v={money(p.funded)} />
+      <TipRow k="Gap" v={g > 0 ? money(g) : "none"} />
+      <span className="tip-bar">
+        <span style={{ width: (p.funded / (p.cost || 1)) * 100 + "%", background: "#4FD5C4" }} />
+      </span>
+      <div className="tip-rule" />
+      <TipRow k="Composite score" v={scoreOf(p, weights).toFixed(1)} />
+      {rank ? <TipRow k="Rank" v={"#" + rank} /> : null}
+      <TipRow k="Programme" v={p.grant} />
+      <TipRow k="Application" v={p.grantStatus} />
+      <TipRow k="Next step" v={p.milestone} />
+      <TipRow k="Due" v={p.msDate} />
+      {extra}
+      <span className="tip-f">{p.agency} &middot; select to open the record</span>
+    </>
+  );
+}
+
+/* ================================================================== *
+ *  7. CHARTS                                                          *
+ * ================================================================== */
+
+function ChartFrame({ title, sub, children, legend }) {
+  return (
+    <div className="panel chart">
+      <p className="chart-title">{title}</p>
+      <p className="chart-sub">{sub}</p>
+      {children}
+      {legend && <Legend items={legend} />}
+    </div>
+  );
+}
+
+/* Horizontal stacked bars.
+   rows: [{label, total, parts:[{name,v,color}], tip?}]  tip() overrides the body. */
+function StackedBars({ rows, maxV, fmt, unit }) {
+  const tip = useTip();
+  const rowH = 26, padL = 92, padR = 60, W = 460;
+  const H = rows.length * rowH + 18;
+  const inner = W - padL - padR;
+  const ticks = 4;
+  return (
+    <svg viewBox={"0 0 " + W + " " + H} role="img">
+      {Array.from({ length: ticks + 1 }).map((_, i) => {
+        const x = padL + (inner / ticks) * i;
+        return (
+          <g key={i}>
+            <line className="grid-line" x1={x} y1={0} x2={x} y2={rows.length * rowH} />
+            <text className="axis-text" x={x} y={H - 4} textAnchor="middle">{fmt((maxV / ticks) * i)}</text>
+          </g>
+        );
+      })}
+      {rows.map((r, i) => {
+        let acc = 0;
+        return (
+          <g key={r.label} transform={"translate(0 " + i * rowH + ")"}>
+            <text className="bar-label" x={padL - 8} y={rowH / 2 + 4} textAnchor="end">{r.label}</text>
+            {r.parts.map((pt, j) => {
+              const w = (pt.v / maxV) * inner, x = padL + acc;
+              acc += w;
+              if (pt.v <= 0) return null;
+              const body = () => r.tip ? r.tip(pt) : (
+                <>
+                  <span className="tip-t">{r.full || r.label}</span>
+                  <span className="tip-s">{pt.name}</span>
+                  <TipRow k={unit || "Value"} v={pt.v > 0 ? fmt(pt.v) : "\u2014"} />
+                  <TipRow k="Share of row" v={((pt.v / (r.total || 1)) * 100).toFixed(0) + "%"} />
+                  <div className="tip-rule" />
+                  {r.parts.map((o) => <TipRow key={o.name} k={o.name} v={o.v > 0 ? fmt(o.v) : "\u2014"} />)}
+                  <TipRow k="Row total" v={fmt(r.total)} />
+                  {r.foot ? <span className="tip-f">{r.foot}</span> : null}
+                </>
+              );
+              return (
+                <rect key={j} className="hit" x={x} y={5} width={Math.max(w, 0)} height={rowH - 12}
+                  fill={pt.color} {...hoverProps(tip, body)} />
+              );
+            })}
+            <text className="axis-text" x={W - padR + 6} y={rowH / 2 + 4}>{fmt(r.total)}</text>
+          </g>
+        );
+      })}
+    </svg>
+  );
+}
+
+/* Benefit against cost. Bubble area is the unfunded gap. */
+function Scatter({ items, weights, ranks, onOpen }) {
+  const tip = useTip();
+  const W = 460, H = 250, padL = 40, padB = 30, padT = 10, padR = 12;
+  const iw = W - padL - padR, ih = H - padB - padT;
+  const maxC = Math.max(...items.map((p) => p.cost), 1);
+  const lx = (c) => padL + (Math.log10(Math.max(c, 1) + 1) / Math.log10(maxC + 1)) * iw;
+  const scores = items.map((p) => scoreOf(p, weights));
+  const lo = Math.min(...scores) - 3, hi = Math.max(...scores) + 3;
+  const ly = (s) => padT + ih - ((s - lo) / (hi - lo)) * ih;
+  const maxG = Math.max(...items.map(gapOf), 1);
+  const marks = [10, 100, 1000];
+  return (
+    <svg viewBox={"0 0 " + W + " " + H} role="img">
+      {[0, .25, .5, .75, 1].map((f, i) => (
+        <line key={i} className="grid-line" x1={padL} y1={padT + ih * f} x2={W - padR} y2={padT + ih * f} />
+      ))}
+      {marks.map((m) => (
+        <g key={m}>
+          <line className="grid-line" x1={lx(m)} y1={padT} x2={lx(m)} y2={padT + ih} />
+          <text className="axis-text" x={lx(m)} y={H - 12} textAnchor="middle">{money(m)}</text>
+        </g>
+      ))}
+      <text className="axis-text" x={padL} y={padT + 4} textAnchor="start">{hi.toFixed(0)}</text>
+      <text className="axis-text" x={padL} y={padT + ih} textAnchor="start">{lo.toFixed(0)}</text>
+      <line className="axis-line" x1={padL} y1={padT} x2={padL} y2={padT + ih} />
+      {items.map((p, i) => {
+        const r = 3 + Math.sqrt(gapOf(p) / maxG) * 11;
+        return (
+          <circle key={p.id} className="dot" cx={lx(p.cost)} cy={ly(scores[i])} r={r}
+            fill={PHASE_COLOR[p.phase]} fillOpacity=".72" stroke="#fff" strokeWidth="1"
+            onClick={() => { tip && tip.hide(); onOpen(p.id); }}
+            {...hoverProps(tip, () => (
+              <ProjectTip p={p} weights={weights} rank={ranks ? ranks[p.id] : null}
+                extra={<TipRow k="Benefit per $100M gap" v={valueIndex(p, weights).toFixed(1)} />} />
+            ))} />
+        );
+      })}
+    </svg>
+  );
+}
+
+/* Score composition: stacked contribution of each criterion. */
+function Composition({ items, weights, ranks, onOpen }) {
+  const tip = useTip();
+  const tw = Object.values(weights).reduce((a, b) => a + b, 0) || 1;
+  const rowH = 24, padL = 128, W = 460, H = items.length * rowH + 16;
+  const inner = W - padL - 40;
+  const maxTotal = Math.max(...items.map((p) => scoreOf(p, weights)), 1);
+  return (
+    <svg viewBox={"0 0 " + W + " " + H} role="img">
+      {items.map((p, i) => {
+        let acc = 0;
+        const totalScore = scoreOf(p, weights);
+        return (
+          <g key={p.id} transform={"translate(0 " + i * rowH + ")"}>
+            <text className="bar-label" x={padL - 8} y={rowH / 2 + 4} textAnchor="end"
+              {...hoverProps(tip, () => <ProjectTip p={p} weights={weights} rank={ranks ? ranks[p.id] : null} />)}>
+              {p.name.length > 24 ? p.name.slice(0, 23) + "\u2026" : p.name}
+            </text>
+            {CRITERIA.map((c, j) => {
+              const contrib = (p.m[j] * weights[c.key]) / tw;
+              const w = (contrib / maxTotal) * inner, x = padL + acc;
+              acc += w;
+              if (w <= 0.4) return null;
+              return (
+                <rect key={c.key} className="hit" x={x} y={5} width={w} height={rowH - 12}
+                  fill={SCALE[j % SCALE.length]}
+                  onClick={() => { tip && tip.hide(); onOpen && onOpen(p.id); }}
+                  {...hoverProps(tip, () => (
+                    <>
+                      <span className="tip-t">{p.name}</span>
+                      <span className="tip-s">{c.label}</span>
+                      <TipRow k="Raw criterion value" v={p.m[j] + " / 100"} />
+                      <TipRow k="Weight" v={weights[c.key] + " of " + tw} />
+                      <TipRow k="Contribution" v={contrib.toFixed(1) + " pts"} />
+                      <TipRow k="Share of score" v={((contrib / (totalScore || 1)) * 100).toFixed(0) + "%"} />
+                      <div className="tip-rule" />
+                      <TipRow k="Composite score" v={totalScore.toFixed(1)} />
+                      <TipRow k="Cost" v={money(p.cost)} />
+                      <TipRow k="Gap" v={gapOf(p) > 0 ? money(gapOf(p)) : "none"} />
+                      <span className="tip-f">{c.unit}</span>
+                    </>
+                  ))} />
+              );
+            })}
+            <text className="axis-text" x={padL + acc + 5} y={rowH / 2 + 4}>{totalScore.toFixed(0)}</text>
+          </g>
+        );
+      })}
+    </svg>
+  );
+}
+
+/* Donut. parts: [{name, v, color, items?}] */
+function Donut({ parts, centreLabel, centreValue, fmt, unit }) {
+  const tip = useTip();
+  const f = fmt || ((v) => String(v));
+  const total = parts.reduce((a, p) => a + p.v, 0) || 1;
+  const R = 74, r = 46, cx = 92, cy = 92;
+  let a0 = -Math.PI / 2;
+  const segs = parts.map((p) => {
+    const a1 = a0 + (p.v / total) * Math.PI * 2;
+    const big = a1 - a0 > Math.PI ? 1 : 0;
+    const d = [
+      "M", cx + R * Math.cos(a0), cy + R * Math.sin(a0),
+      "A", R, R, 0, big, 1, cx + R * Math.cos(a1), cy + R * Math.sin(a1),
+      "L", cx + r * Math.cos(a1), cy + r * Math.sin(a1),
+      "A", r, r, 0, big, 0, cx + r * Math.cos(a0), cy + r * Math.sin(a0), "Z",
+    ].join(" ");
+    a0 = a1;
+    return { p, d };
+  });
+  return (
+    <svg viewBox="0 0 184 184" style={{ maxWidth: 200, margin: "0 auto" }} role="img">
+      {segs.map(({ p, d }) => (
+        <path key={p.name} className="hit" d={d} fill={p.color}
+          {...hoverProps(tip, () => (
+            <>
+              <span className="tip-t">{p.name}</span>
+              <span className="tip-s">{unit || "Share of total"}</span>
+              <TipRow k="Value" v={f(p.v)} />
+              <TipRow k="Share" v={((p.v / total) * 100).toFixed(1) + "%"} />
+              <TipRow k="Total" v={f(total)} />
+              {p.items && p.items.length ? (
+                <>
+                  <div className="tip-rule" />
+                  {p.items.slice(0, 5).map((n) => <TipRow key={n} k={"\u2014"} v={n} />)}
+                  {p.items.length > 5 ? <span className="tip-f">and {p.items.length - 5} more</span> : null}
+                </>
+              ) : null}
+            </>
+          ))} />
+      ))}
+      <text x={cx} y={cy - 2} textAnchor="middle" style={{ fontSize: 19, fontWeight: 600, fill: "#06302D" }}
+        className="num">{centreValue}</text>
+      <text x={cx} y={cy + 14} textAnchor="middle" style={{ fontSize: 8.5, fill: "#47706A", letterSpacing: ".1em" }}>
+        {centreLabel}
+      </text>
+    </svg>
+  );
+}
+
+/* ================================================================== *
+ *  7. PORTFOLIO                                                       *
+ * ================================================================== */
+
+function Overview({ tops, weights, ranks, onOpen }) {
   const total = tops.reduce((a, p) => a + p.cost, 0);
   const funded = tops.reduce((a, p) => a + p.funded, 0);
   const complete = tops.filter((p) => p.phase === "Complete").reduce((a, p) => a + p.cost, 0);
   const gap = total - funded;
 
-  const byMode = MODES.map((m) => ({
-    m,
-    cost: tops.filter((p) => p.mode === m).reduce((a, p) => a + p.cost, 0),
-    gap: tops.filter((p) => p.mode === m).reduce((a, p) => a + gapOf(p), 0),
-  }));
-  const maxMode = Math.max(...byMode.map((x) => x.cost));
+  const modeRows = MODES.map((m) => {
+    const set = tops.filter((p) => p.mode === m);
+    const c = set.reduce((a, p) => a + p.cost, 0);
+    const g = set.reduce((a, p) => a + gapOf(p), 0);
+    return {
+      label: m, full: m + " projects", total: c,
+      foot: set.length + " projects \u00b7 " + set.filter((p) => gapOf(p) > 0).length + " with an open gap",
+      parts: [
+        { name: "Committed", v: c - g, color: "#17968B" },
+        { name: "Gap", v: g, color: "#C2DAD5" },
+      ],
+    };
+  }).sort((a, b) => b.total - a.total);
+  const maxMode = Math.max(...modeRows.map((r) => r.total), 1);
 
-  const byState = STATES.map((s) => ({
-    s,
-    cost: tops.filter((p) => p.state === s).reduce((a, p) => a + p.cost, 0),
-  }));
+  const phaseParts = PHASES.map((ph) => {
+    const set = tops.filter((p) => p.phase === ph);
+    return {
+      name: ph, v: set.reduce((a, p) => a + p.cost, 0),
+      color: PHASE_COLOR[ph], items: set.map((p) => p.name),
+    };
+  }).filter((p) => p.v > 0);
 
+  const topScored = [...tops].sort((a, b) => scoreOf(b, weights) - scoreOf(a, weights)).slice(0, 8);
   const biggestGaps = [...tops].sort((a, b) => gapOf(b) - gapOf(a)).slice(0, 8);
 
   return (
@@ -249,51 +932,51 @@ function Overview({ tops, onOpen }) {
         <div className="eyebrow">Portfolio</div>
         <h1>2026 priority projects</h1>
         <p className="lede">
-          Twenty-nine projects across eastern Missouri and southwestern Illinois.
-          The bar under every project shows what is built, what is funded, and what
-          is still being asked for.
+          Twenty-nine projects across the bi-state region. The bar under every
+          project shows what is built, what is committed, and what is still being
+          asked for.
         </p>
       </header>
 
       <div className="stat-row">
         <Stat label="Total investment" value={money(total)} sub="29 projects" />
         <Stat label="Completed" value={money(complete)} sub="6 projects delivered" />
-        <Stat label="Funded, not complete" value={money(funded - complete)} sub="Committed by sponsors" />
-        <Stat label="Remaining gap" value={money(gap)} sub={((gap / total) * 100).toFixed(0) + "% of program"} />
+        <Stat label="Committed, not complete" value={money(funded - complete)} sub="Programmed by sponsors" />
+        <Stat label="Remaining gap" value={money(gap)} sub={((gap / total) * 100).toFixed(0) + "% of programme"} />
       </div>
 
-      <div className="panel">
-        <div className="panel-head">
-          <h2>Where the money sits</h2>
-          <span className="panel-note">Committed against remaining gap, by mode</span>
-        </div>
-        <div className="mode-grid">
-          {byMode.map((x) => (
-            <div key={x.m} className="mode-row">
-              <div className="mode-name">{x.m}</div>
-              <div className="mode-bar">
-                <div
-                  className="mode-fill"
-                  style={{ width: ((x.cost - x.gap) / maxMode) * 100 + "%", background: "#17968B" }}
-                />
-                <div
-                  className="mode-fill"
-                  style={{ width: (x.gap / maxMode) * 100 + "%", background: "#C2DAD5" }}
-                />
-              </div>
-              <div className="mode-val">{money(x.cost)}</div>
-            </div>
-          ))}
-        </div>
-        <div className="split-row">
-          {byState.map((x) => (
-            <div key={x.s} className="split">
-              <span className="split-key">{x.s === "MO-IL" ? "Bi-state" : x.s}</span>
-              <span className="split-val">{money(x.cost)}</span>
-              <span className="split-pct">{((x.cost / total) * 100).toFixed(0)}%</span>
-            </div>
-          ))}
-        </div>
+      <div className="chart-grid">
+        <ChartFrame
+          title="Investment by mode"
+          sub="Committed against the remaining gap"
+          legend={[{ label: "Committed", color: "#17968B" }, { label: "Gap", color: "#C2DAD5" }]}
+        >
+          <StackedBars rows={modeRows} maxV={maxMode} fmt={money} unit="Investment" />
+        </ChartFrame>
+
+        <ChartFrame
+          title="Programme by delivery status"
+          sub="Share of total cost"
+          legend={phaseParts.map((p) => ({ label: p.name, color: p.color }))}
+        >
+          <Donut parts={phaseParts} centreValue={money(total)} centreLabel="TOTAL" fmt={money} unit="Share of programme cost" />
+        </ChartFrame>
+
+        <ChartFrame
+          title="Benefit against cost"
+          sub="Bubble size is the unfunded gap. Hover for the project, select to open the record."
+          legend={PHASES.filter((p) => tops.some((t) => t.phase === p)).map((p) => ({ label: p, color: PHASE_COLOR[p] }))}
+        >
+          <Scatter items={tops} weights={weights} ranks={ranks} onOpen={onOpen} />
+        </ChartFrame>
+
+        <ChartFrame
+          title="What drives the top scores"
+          sub="Weighted contribution of each criterion. Hover a band for the underlying value."
+          legend={CRITERIA.slice(0, 4).map((c, i) => ({ label: c.label.split(" ")[0], color: SCALE[i] }))}
+        >
+          <Composition items={topScored} weights={weights} ranks={ranks} onOpen={onOpen} />
+        </ChartFrame>
       </div>
 
       <div className="panel">
@@ -306,7 +989,7 @@ function Overview({ tops, onOpen }) {
             <li key={p.id}>
               <button className="gap-item" onClick={() => onOpen(p.id)}>
                 <span className="gap-name">{p.name}</span>
-                <Ribbon project={p} height={5} />
+                <Ribbon project={p} height={5} weights={weights} rank={ranks ? ranks[p.id] : null} />
                 <span className="gap-num">{money(gapOf(p))}</span>
               </button>
             </li>
@@ -317,6 +1000,10 @@ function Overview({ tops, onOpen }) {
   );
 }
 
+/* ================================================================== *
+ *  8. REGISTER                                                        *
+ * ================================================================== */
+
 function Register({ rows, filters, setFilters, onOpen, weights, ranks }) {
   const [expanded, setExpanded] = useState(() => new Set(["R1", "R2", "R11"]));
   const toggle = (id) => {
@@ -325,67 +1012,51 @@ function Register({ rows, filters, setFilters, onOpen, weights, ranks }) {
     setExpanded(n);
   };
   const visible = rows.filter((p) => !p.parent || expanded.has(p.parent));
-
   const set = (k) => (e) => setFilters({ ...filters, [k]: e.target.value });
 
   return (
     <div className="screen">
       <header className="screen-head">
-        <div className="eyebrow">Register</div>
-        <h1>Master project list</h1>
+        <div className="eyebrow">Database</div>
+        <h1>Master project register</h1>
         <p className="lede">
-          Every entry, including sub-projects that carry their own funding status.
-          Costs and dollars roll up to the parent.
+          Every candidate project with name, location, mode, sponsor, cost, status
+          and coordinates. Sub-projects that carry their own funding status sit
+          under their parent corridor and roll up to it.
         </p>
       </header>
 
       <div className="filters">
-        <label>
-          <span>Search</span>
-          <input value={filters.q} onChange={set("q")} placeholder="Project or sponsor" />
-        </label>
-        <label>
-          <span>Mode</span>
+        <label><span>Search</span>
+          <input value={filters.q} onChange={set("q")} placeholder="Project or sponsor" /></label>
+        <label><span>Mode</span>
           <select value={filters.mode} onChange={set("mode")}>
-            <option value="">All modes</option>
-            {MODES.map((m) => <option key={m}>{m}</option>)}
-          </select>
-        </label>
-        <label>
-          <span>State</span>
+            <option value="">All modes</option>{MODES.map((m) => <option key={m}>{m}</option>)}
+          </select></label>
+        <label><span>State</span>
           <select value={filters.state} onChange={set("state")}>
-            <option value="">Both states</option>
-            {STATES.map((s) => <option key={s}>{s}</option>)}
-          </select>
-        </label>
-        <label>
-          <span>Status</span>
+            <option value="">Both states</option>{STATES.map((s) => <option key={s}>{s}</option>)}
+          </select></label>
+        <label><span>Status</span>
           <select value={filters.phase} onChange={set("phase")}>
-            <option value="">Any status</option>
-            {PHASES.map((s) => <option key={s}>{s}</option>)}
-          </select>
-        </label>
-        <button
-          className="ghost"
-          onClick={() => setFilters({ q: "", mode: "", state: "", phase: "" })}
-        >
+            <option value="">Any status</option>{PHASES.map((s) => <option key={s}>{s}</option>)}
+          </select></label>
+        <button className="ghost" onClick={() => setFilters({ q: "", mode: "", state: "", phase: "" })}>
           Clear filters
         </button>
       </div>
 
       <div className="table-wrap">
         <table className="register">
-          <thead>
-            <tr>
-              <th className="c-name">Project</th>
-              <th className="c-num">Cost</th>
-              <th className="c-num">Committed</th>
-              <th className="c-num">Gap</th>
-              <th className="c-rib">Funding</th>
-              <th className="c-num">Score</th>
-              <th className="c-num">Rank</th>
-            </tr>
-          </thead>
+          <thead><tr>
+            <th className="c-name">Project</th>
+            <th className="c-num">Cost</th>
+            <th className="c-num">Committed</th>
+            <th className="c-num">Gap</th>
+            <th className="c-rib">Funding</th>
+            <th className="c-num">Score</th>
+            <th className="c-num">Rank</th>
+          </tr></thead>
           <tbody>
             {visible.map((p) => {
               const kids = rows.some((k) => k.parent === p.id);
@@ -393,139 +1064,119 @@ function Register({ rows, filters, setFilters, onOpen, weights, ranks }) {
                 <tr key={p.id} className={p.parent ? "child" : ""}>
                   <td className="c-name">
                     <div className="name-cell">
-                      {kids ? (
-                        <button
-                          className="disc"
-                          onClick={() => toggle(p.id)}
-                          aria-label={expanded.has(p.id) ? "Collapse" : "Expand"}
-                        >
-                          {expanded.has(p.id) ? "\u2212" : "+"}
-                        </button>
-                      ) : (
-                        <span className="disc-space" />
-                      )}
-                      <button className="link" onClick={() => onOpen(p.id)}>
-                        {p.name}
-                      </button>
+                      {kids
+                        ? <button className="disc" onClick={() => toggle(p.id)}
+                            aria-label={expanded.has(p.id) ? "Collapse" : "Expand"}>
+                            {expanded.has(p.id) ? "\u2212" : "+"}
+                          </button>
+                        : <span className="disc-space" />}
+                      <button className="link" onClick={() => onOpen(p.id)}>{p.name}</button>
                       <Tag tone={PHASE_COLOR[p.phase]}>{p.phase}</Tag>
-                      <span className="meta">{p.state} &middot; {p.mode}</span>
+                      <span className="meta">{p.state} &middot; {p.mode} &middot; {p.lat.toFixed(3)}, {p.lng.toFixed(3)}</span>
                     </div>
                   </td>
                   <td className="c-num">{money(p.cost)}</td>
                   <td className="c-num">{money(p.funded)}</td>
                   <td className="c-num gap">{gapOf(p) > 0 ? money(gapOf(p)) : "\u2014"}</td>
-                  <td className="c-rib"><Ribbon project={p} /></td>
+                  <td className="c-rib"><Ribbon project={p} weights={weights} rank={p.parent ? null : ranks[p.id]} /></td>
                   <td className="c-num">{scoreOf(p, weights).toFixed(1)}</td>
-                  <td className="c-num">{p.parent ? "\u2014" : ranks[p.id] || "\u2014"}</td>
+                  <td className="c-num">{p.parent ? "\u2014" : (ranks[p.id] || "\u2014")}</td>
                 </tr>
               );
             })}
             {visible.length === 0 && (
-              <tr>
-                <td colSpan={7} className="empty">
-                  No projects match these filters. Widen the mode or status filter.
-                </td>
-              </tr>
+              <tr><td colSpan={7} className="empty">
+                No projects match these filters. Widen the mode or status filter.
+              </td></tr>
             )}
           </tbody>
         </table>
       </div>
-      <div className="legend">
-        <span><i style={{ background: "#06403C" }} /> Complete</span>
-        <span><i style={{ background: "#17968B" }} /> Funded</span>
-        <span><i style={{ background: "#C2DAD5" }} /> Gap</span>
-      </div>
+      <Legend items={[
+        { label: "Complete", color: "#06403C" },
+        { label: "Committed", color: "#17968B" },
+        { label: "Gap", color: "#C2DAD5" },
+      ]} />
     </div>
   );
 }
 
-function Scoring({ weights, setWeights, denominator, setDenominator, tops, onOpen, baseRanks }) {
+/* ================================================================== *
+ *  9. SCORING AND RANKING ENGINE                                      *
+ * ================================================================== */
+
+function Scoring({ weights, setWeights, basis, setBasis, tops, onOpen, baseRanks }) {
+  const tip = useTip();
   const total = Object.values(weights).reduce((a, b) => a + b, 0);
-  const ordered = [...tops].sort(
-    (a, b) => rankValue(b, weights, denominator) - rankValue(a, weights, denominator)
-  );
+  const ordered = [...tops].sort((a, b) => rankValue(b, weights, basis) - rankValue(a, weights, basis));
 
   const stress = useMemo(() => {
-    const counts = {};
-    const N = 120;
+    const counts = {}; const N = 120;
     for (let r = 0; r < N; r++) {
       const w = {};
-      CRITERIA.forEach((c) => {
-        w[c.key] = Math.max(0, weights[c.key] + (Math.random() * 20 - 10));
-      });
-      const top10 = [...tops]
-        .sort((a, b) => rankValue(b, w, denominator) - rankValue(a, w, denominator))
-        .slice(0, 10);
-      top10.forEach((p) => { counts[p.id] = (counts[p.id] || 0) + 1; });
+      CRITERIA.forEach((c) => { w[c.key] = Math.max(0, weights[c.key] + (Math.random() * 20 - 10)); });
+      [...tops].sort((a, b) => rankValue(b, w, basis) - rankValue(a, w, basis))
+        .slice(0, 10).forEach((p) => { counts[p.id] = (counts[p.id] || 0) + 1; });
     }
     const out = {};
     Object.keys(counts).forEach((k) => { out[k] = counts[k] / N; });
     return out;
-  }, [weights, tops, denominator]);
+  }, [weights, tops, basis]);
 
   return (
     <div className="screen">
       <header className="screen-head">
         <div className="eyebrow">Method</div>
-        <h1>Scoring workbench</h1>
+        <h1>Scoring and ranking engine</h1>
         <p className="lede">
-          Move a weight and the ranking updates. Projects that only reach the top
-          under one weighting are flagged, so the committee can see which
-          positions are robust and which are an artifact of the weights.
+          The Task 5 selection criteria with adjustable weights. Composite score
+          and rank recalculate as weights move. Positions that survive only one
+          weighting are flagged, so the committee can see which parts of the
+          ranking are robust.
         </p>
       </header>
 
-      <div className="two-col">
-        <div className="panel">
-          <div className="panel-head">
-            <h2>Weights</h2>
-            <span className="panel-note">Sum {total}</span>
-          </div>
-          {CRITERIA.map((c) => (
-            <div key={c.key} className="weight-row">
-              <div className="weight-top">
-                <label htmlFor={"w-" + c.key}>{c.label}</label>
-                <span className="weight-num">{weights[c.key]}</span>
+      <div className="two-col wide-right">
+        <div>
+          <div className="panel">
+            <div className="panel-head">
+              <h2>Criterion weights</h2>
+              <span className="panel-note">Sum {total}</span>
+            </div>
+            {CRITERIA.map((c) => (
+              <div key={c.key} className="weight-row">
+                <div className="weight-top">
+                  <label htmlFor={"w-" + c.key}>{c.label}</label>
+                  <span className="weight-num">{weights[c.key]}</span>
+                </div>
+                <input id={"w-" + c.key} type="range" min="0" max="40" value={weights[c.key]}
+                  onChange={(e) => setWeights({ ...weights, [c.key]: Number(e.target.value) })} />
+                <div className="weight-unit">{c.unit}</div>
               </div>
-              <input
-                id={"w-" + c.key}
-                type="range"
-                min="0"
-                max="40"
-                value={weights[c.key]}
-                onChange={(e) => setWeights({ ...weights, [c.key]: Number(e.target.value) })}
-              />
-              <div className="weight-unit">{c.unit}</div>
+            ))}
+            <div style={{ marginTop: 16 }}>
+              <span className="field-label">Rank projects by</span>
+              <div className="seg">
+                <button className={basis === "benefit" ? "on" : ""} onClick={() => setBasis("benefit")}>
+                  Benefit score
+                </button>
+                <button className={basis === "efficiency" ? "on" : ""} onClick={() => setBasis("efficiency")}>
+                  Benefit per $100M of gap
+                </button>
+              </div>
+              <p className="hint">
+                Ranking on benefit alone puts the megaprojects on top. Ranking on
+                benefit per dollar still being asked for moves small, ready
+                projects up. This is the trade-off to settle before the weights.
+              </p>
             </div>
-          ))}
-          <div className="denominator">
-            <span className="field-label">Rank projects by</span>
-            <div className="seg">
-              <button
-                className={denominator === "benefit" ? "on" : ""}
-                onClick={() => setDenominator("benefit")}
-              >
-                Benefit score
-              </button>
-              <button
-                className={denominator === "efficiency" ? "on" : ""}
-                onClick={() => setDenominator("efficiency")}
-              >
-                Benefit per $100M of gap
-              </button>
-            </div>
-            <p className="hint">
-              Ranking on benefit alone puts the megaprojects on top. Ranking on
-              benefit per dollar still being asked for moves small, ready projects
-              up, which is the trade-off the committee has to settle first.
-            </p>
           </div>
         </div>
 
         <div className="panel">
           <div className="panel-head">
-            <h2>Ranking</h2>
-            <span className="panel-note">Against the adopted 2026 weights</span>
+            <h2>Composite ranking</h2>
+            <span className="panel-note">Movement shown against the adopted 2026 weights</span>
           </div>
           <ol className="rank-list">
             {ordered.map((p, i) => {
@@ -533,27 +1184,24 @@ function Scoring({ weights, setWeights, denominator, setDenominator, tops, onOpe
               const stability = stress[p.id];
               return (
                 <li key={p.id}>
-                  <button className="rank-item" onClick={() => onOpen(p.id)}>
+                  <button className="rank-item" onClick={() => onOpen(p.id)}
+                    {...hoverProps(tip, () => (
+                      <ProjectTip p={p} weights={weights} rank={i + 1}
+                        extra={<TipRow k="Benefit per $100M gap" v={valueIndex(p, weights).toFixed(1)} />} />
+                    ))}>
                     <span className="rank-no">{String(i + 1).padStart(2, "0")}</span>
-                    <span className="rank-name">
-                      {p.name}
-                      <span className="rank-meta">
-                        {money(p.cost)} &middot; {p.mode} &middot; {p.state}
-                      </span>
+                    <span className="rank-name">{p.name}
+                      <span className="rank-meta">{money(p.cost)} &middot; {p.mode} &middot; {p.state} &middot; {p.agency}</span>
                     </span>
                     <span className="rank-right">
-                      <span className="rank-score">
-                        {rankValue(p, weights, denominator).toFixed(1)}
-                      </span>
+                      <span className="rank-score">{rankValue(p, weights, basis).toFixed(1)}</span>
                       {move !== 0 && (
                         <span className={"move " + (move > 0 ? "up" : "down")}>
                           {move > 0 ? "\u25B2" : "\u25BC"} {Math.abs(move)}
                         </span>
                       )}
                       {i < 10 && stability !== undefined && stability < 0.7 && (
-                        <span className="fragile" title="Leaves the top ten under small weight changes">
-                          fragile
-                        </span>
+                        <span className="fragile" title="Leaves the top ten under small weight changes">fragile</span>
                       )}
                     </span>
                   </button>
@@ -567,40 +1215,32 @@ function Scoring({ weights, setWeights, denominator, setDenominator, tops, onOpe
   );
 }
 
+/* ================================================================== *
+ *  10. SCENARIOS                                                      *
+ * ================================================================== */
+
 function Optimizer({ tops, weights, onOpen }) {
-  const candidates = useMemo(
-    () => tops.filter((p) => gapOf(p) > 0 && p.phase !== "Study"),
-    [tops]
-  );
+  const tip = useTip();
+  const candidates = useMemo(() => tops.filter((p) => gapOf(p) > 0 && p.phase !== "Study"), [tops]);
   const maxGap = candidates.reduce((a, p) => a + gapOf(p), 0);
   const [budget, setBudget] = useState(1500);
   const [balance, setBalance] = useState(false);
   const [locked, setLocked] = useState(() => new Set());
   const [excluded, setExcluded] = useState(() => new Set());
 
-  const run = useCallback(
-    (b) => {
-      const pool = candidates.filter((p) => !excluded.has(p.id) && !locked.has(p.id));
-      const lockCost = candidates
-        .filter((p) => locked.has(p.id))
-        .reduce((a, p) => a + gapOf(p), 0);
-      let remaining = Math.max(0, b - lockCost);
-      const chosen = new Set(locked);
-      if (!balance) {
-        const r = selectPortfolio(pool, remaining, weights);
-        r.chosen.forEach((id) => chosen.add(id));
-      } else {
-        const mo = pool.filter((p) => p.state === "MO");
-        const il = pool.filter((p) => p.state !== "MO");
-        const a = selectPortfolio(mo, remaining * 0.5, weights);
-        const c = selectPortfolio(il, remaining * 0.5, weights);
-        a.chosen.forEach((id) => chosen.add(id));
-        c.chosen.forEach((id) => chosen.add(id));
-      }
-      return chosen;
-    },
-    [candidates, weights, balance, locked, excluded]
-  );
+  const run = useCallback((b) => {
+    const pool = candidates.filter((p) => !excluded.has(p.id) && !locked.has(p.id));
+    const lockCost = candidates.filter((p) => locked.has(p.id)).reduce((a, p) => a + gapOf(p), 0);
+    const remaining = Math.max(0, b - lockCost);
+    const chosen = new Set(locked);
+    if (!balance) {
+      selectPortfolio(pool, remaining, weights).chosen.forEach((id) => chosen.add(id));
+    } else {
+      selectPortfolio(pool.filter((p) => p.state === "MO"), remaining * 0.5, weights).chosen.forEach((id) => chosen.add(id));
+      selectPortfolio(pool.filter((p) => p.state !== "MO"), remaining * 0.5, weights).chosen.forEach((id) => chosen.add(id));
+    }
+    return chosen;
+  }, [candidates, weights, balance, locked, excluded]);
 
   const chosen = useMemo(() => run(budget), [run, budget]);
   const selected = candidates.filter((p) => chosen.has(p.id));
@@ -611,20 +1251,16 @@ function Optimizer({ tops, weights, onOpen }) {
     for (let i = 0; i <= 16; i++) {
       const b = (maxGap / 16) * i;
       const c = run(b);
-      const v = candidates
-        .filter((p) => c.has(p.id))
-        .reduce((a, p) => a + scoreOf(p, weights), 0);
-      pts.push({ b, v });
+      pts.push({ b, v: candidates.filter((p) => c.has(p.id)).reduce((a, p) => a + scoreOf(p, weights), 0) });
     }
     return pts;
   }, [run, maxGap, candidates, weights]);
 
   const maxV = Math.max(...frontier.map((p) => p.v), 1);
   const W = 560, H = 170;
-  const path = frontier
-    .map((p, i) => `${i === 0 ? "M" : "L"} ${(p.b / maxGap) * W} ${H - (p.v / maxV) * H}`)
-    .join(" ");
-  const cur = { x: (Math.min(budget, maxGap) / maxGap) * W, y: H - (selected.reduce((a, p) => a + scoreOf(p, weights), 0) / maxV) * H };
+  const path = frontier.map((p, i) => `${i === 0 ? "M" : "L"} ${(p.b / maxGap) * W} ${H - (p.v / maxV) * H}`).join(" ");
+  const curV = selected.reduce((a, p) => a + scoreOf(p, weights), 0);
+  const cur = { x: (Math.min(budget, maxGap) / maxGap) * W, y: H - (curV / maxV) * H };
 
   const toggleSet = (set, setter, id) => {
     const n = new Set(set);
@@ -639,8 +1275,8 @@ function Optimizer({ tops, weights, onOpen }) {
         <h1>Budget scenarios</h1>
         <p className="lede">
           Given an envelope, the tool picks the set of unfunded gaps that buys the
-          most scored benefit. Lock a project in when a commitment already exists,
-          or exclude one that is not deliverable in the period.
+          most scored benefit. Lock a project in where a commitment already
+          exists, or exclude one that is not deliverable in the period.
         </p>
       </header>
 
@@ -648,14 +1284,8 @@ function Optimizer({ tops, weights, onOpen }) {
         <div className="controls">
           <label className="budget">
             <span className="field-label">Advocacy envelope</span>
-            <input
-              type="range"
-              min="0"
-              max={Math.round(maxGap)}
-              step="25"
-              value={budget}
-              onChange={(e) => setBudget(Number(e.target.value))}
-            />
+            <input type="range" min="0" max={Math.round(maxGap)} step="25" value={budget}
+              onChange={(e) => setBudget(Number(e.target.value))} />
             <output>{money(budget)}</output>
           </label>
           <label className="check">
@@ -667,8 +1297,39 @@ function Optimizer({ tops, weights, onOpen }) {
         <div className="frontier">
           <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" role="img" aria-label="Benefit against budget">
             <path d={path} fill="none" stroke="#0E7C72" strokeWidth="2" vectorEffect="non-scaling-stroke" />
-            <line x1={cur.x} y1="0" x2={cur.x} y2={H} stroke="#06403C" strokeWidth="1" strokeDasharray="4 4" vectorEffect="non-scaling-stroke" />
+            <line x1={cur.x} y1="0" x2={cur.x} y2={H} stroke="#06403C" strokeWidth="1"
+              strokeDasharray="4 4" vectorEffect="non-scaling-stroke" />
             <circle cx={cur.x} cy={cur.y} r="4" fill="#06403C" />
+            {frontier.map((pt, i) => {
+              const seg = W / frontier.length;
+              const picked = candidates.filter((p) => run(pt.b).has(p.id));
+              const prev = i > 0 ? frontier[i - 1] : null;
+              return (
+                <rect key={i} className="hit" x={i * seg} y={0} width={seg} height={H}
+                  fill="transparent"
+                  onClick={() => setBudget(Math.round(pt.b))}
+                  {...hoverProps(tip, () => (
+                    <>
+                      <span className="tip-t">{money(pt.b)} envelope</span>
+                      <span className="tip-s">Point on the benefit curve</span>
+                      <TipRow k="Projects funded" v={picked.length + " of " + candidates.length} />
+                      <TipRow k="Gap covered" v={money(picked.reduce((a, p) => a + gapOf(p), 0))} />
+                      <TipRow k="Benefit purchased" v={pt.v.toFixed(0) + " pts"} />
+                      {prev ? (
+                        <TipRow k="Gained on last step"
+                          v={"+" + (pt.v - prev.v).toFixed(0) + " pts / " + money(pt.b - prev.b)} />
+                      ) : null}
+                      <div className="tip-rule" />
+                      {picked.slice(0, 4).map((p) => (
+                        <TipRow key={p.id} k={p.name.length > 22 ? p.name.slice(0, 21) + "\u2026" : p.name}
+                          v={money(gapOf(p))} />
+                      ))}
+                      {picked.length > 4 ? <span className="tip-f">and {picked.length - 4} more</span> : null}
+                      <span className="tip-f">Select to set the envelope here</span>
+                    </>
+                  ))} />
+              );
+            })}
           </svg>
           <div className="frontier-axis">
             <span>{money(0)}</span>
@@ -679,7 +1340,7 @@ function Optimizer({ tops, weights, onOpen }) {
 
         <div className="scenario-summary">
           <Stat label="Projects selected" value={selected.length + " of " + candidates.length} />
-          <Stat label="Committed in scenario" value={money(spend)} sub={money(budget - spend) + " unspent"} />
+          <Stat label="Committed in scenario" value={money(spend)} sub={money(Math.max(0, budget - spend)) + " unspent"} />
           <Stat label="Gap left on the table" value={money(maxGap - spend)} />
         </div>
       </div>
@@ -690,106 +1351,430 @@ function Optimizer({ tops, weights, onOpen }) {
           <span className="panel-note">Sorted by benefit per dollar of gap</span>
         </div>
         <ul className="pick-list">
-          {[...candidates]
-            .sort((a, b) => valueIndex(b, weights, "gap") - valueIndex(a, weights, "gap"))
-            .map((p) => {
-              const inSet = chosen.has(p.id);
-              return (
-                <li key={p.id} className={inSet ? "picked" : ""}>
-                  <span className="pick-mark" aria-hidden="true">{inSet ? "\u25CF" : "\u25CB"}</span>
-                  <button className="pick-name link" onClick={() => onOpen(p.id)}>{p.name}</button>
-                  <span className="pick-num">{money(gapOf(p))}</span>
-                  <span className="pick-eff">{valueIndex(p, weights, "gap").toFixed(1)}</span>
-                  <span className="pick-actions">
-                    <button
-                      className={locked.has(p.id) ? "chip on" : "chip"}
-                      onClick={() => toggleSet(locked, setLocked, p.id)}
-                    >
-                      Lock in
-                    </button>
-                    <button
-                      className={excluded.has(p.id) ? "chip on" : "chip"}
-                      onClick={() => toggleSet(excluded, setExcluded, p.id)}
-                    >
-                      Exclude
-                    </button>
-                  </span>
-                </li>
-              );
-            })}
+          {[...candidates].sort((a, b) => valueIndex(b, weights) - valueIndex(a, weights)).map((p) => {
+            const inSet = chosen.has(p.id);
+            return (
+              <li key={p.id} className={inSet ? "picked" : ""}>
+                <span className="pick-mark" aria-hidden="true">{inSet ? "\u25CF" : "\u25CB"}</span>
+                <button className="pick-name link" onClick={() => onOpen(p.id)}>{p.name}</button>
+                <span className="pick-num">{money(gapOf(p))}</span>
+                <span className="pick-eff">{valueIndex(p, weights).toFixed(1)}</span>
+                <span className="pick-actions">
+                  <button className={locked.has(p.id) ? "chip on" : "chip"}
+                    onClick={() => toggleSet(locked, setLocked, p.id)}>Lock in</button>
+                  <button className={excluded.has(p.id) ? "chip on" : "chip"}
+                    onClick={() => toggleSet(excluded, setExcluded, p.id)}>Exclude</button>
+                </span>
+              </li>
+            );
+          })}
         </ul>
       </div>
     </div>
   );
 }
 
-const MILESTONES = ["Concept", "Study", "Engineering", "Right of way", "Funding secured", "Letting", "Construction", "Open"];
+/* ================================================================== *
+ *  11. GIS MAP VIEWER                                                 *
+ * ================================================================== */
 
-function milestoneIndex(p) {
-  switch (p.phase) {
-    case "Complete": return 8;
-    case "Construction": return 7;
-    case "Funded": return 5;
-    case "Partial": return 4;
-    case "Unfunded": return 2;
-    default: return 1;
-  }
+const LAYER_DEFS = [
+  { key:"projects",  label:"Scored and ranked projects", note:"Marker size follows the composite score", src:"Register", demo:false },
+  { key:"corridors", label:"Freight volumes",            note:"Line weight follows truck AADT (Task 3)", src:"Demo data", demo:true },
+  { key:"gateways",  label:"Commodity flows",            note:"Circle area follows annual tonnage (Task 3)", src:"Demo data", demo:true },
+  { key:"isa",       label:"Industrial Site Areas",      note:"Simplified illustrative extents (Task 4)", src:"Demo data", demo:true },
+  { key:"hotspots",  label:"Gaps and high-crash sites",  note:"Truck-involved crash concentrations (Task 5)", src:"Demo data", demo:true },
+];
+
+function MapView({ tops, weights, ranks, onOpen }) {
+  const host = useRef(null);
+  const mapRef = useRef(null);
+  const groups = useRef({});
+  const [ready, setReady] = useState(null); // null = checking, true/false = result
+  const [on, setOn] = useState({ projects:true, corridors:true, gateways:false, isa:true, hotspots:false });
+  const [basemap, setBasemap] = useState("light");
+
+  useEffect(() => {
+    if (typeof L === "undefined" || !host.current) { setReady(false); return; }
+    let map;
+    try {
+      map = L.map(host.current, { scrollWheelZoom: false, zoomControl: true }).setView([38.65, -90.22], 9);
+      L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png", {
+        attribution: '&copy; OpenStreetMap contributors &copy; CARTO', maxZoom: 18, subdomains: "abcd",
+      }).addTo(map);
+    } catch (e) { setReady(false); return; }
+    mapRef.current = map;
+
+    const g = {};
+
+    /* --- Industrial Site Areas --- */
+    g.isa = L.layerGroup(ISA_AREAS.map((a) =>
+      L.rectangle(a.box, { color:"#0E7C72", weight:1, fillColor:"#4FBBAC", fillOpacity:.18, dashArray:"4 3" })
+        .bindPopup('<span class="pop-t">' + a.name + '</span><div class="pop-r"><span>Industrial Site Area</span><span>' + a.acres.toLocaleString() + ' ac</span></div>')
+    ));
+
+    /* --- Corridor truck volumes --- */
+    g.corridors = L.layerGroup(CORRIDORS.map((c) =>
+      L.polyline(c.path, { color:"#06403C", weight: 1.5 + (c.aadtt / 15200) * 7, opacity:.62 })
+        .bindPopup('<span class="pop-t">' + c.name + '</span><div class="pop-r"><span>Truck AADT</span><span>' + c.aadtt.toLocaleString() + '</span></div>')
+    ));
+
+    /* --- Commodity flow gateways --- */
+    g.gateways = L.layerGroup(GATEWAYS.map((t) =>
+      L.circleMarker(t.ll, {
+        radius: 5 + Math.sqrt(t.mt) * 5, color:"#0E7C72", weight:1.5,
+        fillColor:"#8FD3C8", fillOpacity:.62,
+      }).bindPopup('<span class="pop-t">' + t.name + '</span><div class="pop-r"><span>Annual throughput</span><span>' + t.mt + ' Mt</span></div>')
+    ));
+
+    /* --- Crash concentrations --- */
+    g.hotspots = L.layerGroup(HOTSPOTS.map((h) =>
+      L.circleMarker(h.ll, {
+        radius: 4 + (h.crashes / 51) * 9, color:"#06302D", weight:1,
+        fillColor:"#06302D", fillOpacity:.34,
+      }).bindPopup('<span class="pop-t">' + h.name + '</span><div class="pop-r"><span>Truck-involved crashes, 3 yr</span><span>' + h.crashes + '</span></div>')
+    ));
+
+    /* --- Scored projects --- */
+    const scores = tops.map((p) => scoreOf(p, weights));
+    const lo = Math.min(...scores), hi = Math.max(...scores);
+    g.projects = L.layerGroup(tops.map((p, i) => {
+      const t = hi === lo ? .5 : (scores[i] - lo) / (hi - lo);
+      const mk = L.circleMarker([p.lat, p.lng], {
+        radius: 5 + t * 9,
+        color: "#FFFFFF", weight: 1.5,
+        fillColor: PHASE_COLOR[p.phase], fillOpacity: .92,
+      });
+      mk.bindPopup(
+        '<span class="pop-t">' + p.name + '</span>' +
+        '<div class="pop-r"><span>Rank</span><span>' + (ranks[p.id] || "\u2014") + '</span></div>' +
+        '<div class="pop-r"><span>Score</span><span>' + scores[i].toFixed(1) + '</span></div>' +
+        '<div class="pop-r"><span>Cost</span><span>' + money(p.cost) + '</span></div>' +
+        '<div class="pop-r"><span>Gap</span><span>' + (gapOf(p) > 0 ? money(gapOf(p)) : "none") + '</span></div>' +
+        '<div class="pop-r"><span>Sponsor</span><span>' + p.agency + '</span></div>'
+      );
+      mk.on("dblclick", () => onOpen(p.id));
+      return mk;
+    }));
+
+    groups.current = g;
+    Object.keys(g).forEach((k) => { if (on[k]) g[k].addTo(map); });
+    setReady(true);
+    setTimeout(() => map.invalidateSize(), 60);
+
+    return () => { map.remove(); mapRef.current = null; groups.current = {}; };
+    // eslint-disable-next-line
+  }, []);
+
+  // toggle layers
+  useEffect(() => {
+    const map = mapRef.current, g = groups.current;
+    if (!map || !g.projects) return;
+    Object.keys(g).forEach((k) => {
+      if (on[k] && !map.hasLayer(g[k])) g[k].addTo(map);
+      if (!on[k] && map.hasLayer(g[k])) map.removeLayer(g[k]);
+    });
+  }, [on, ready]);
+
+  // rescale project markers when weights change
+  useEffect(() => {
+    const g = groups.current;
+    if (!g.projects) return;
+    const scores = tops.map((p) => scoreOf(p, weights));
+    const lo = Math.min(...scores), hi = Math.max(...scores);
+    g.projects.getLayers().forEach((mk, i) => {
+      const t = hi === lo ? .5 : (scores[i] - lo) / (hi - lo);
+      mk.setRadius(5 + t * 9);
+    });
+  }, [weights, tops, ready]);
+
+  const flip = (k) => setOn({ ...on, [k]: !on[k] });
+
+  return (
+    <div className="screen">
+      <header className="screen-head">
+        <div className="eyebrow">Geography</div>
+        <h1>GIS map viewer</h1>
+        <p className="lede">
+          Scored project points over the freight context layers. Select a marker
+          for its score and funding position, or double-click it to open the full
+          record.
+        </p>
+      </header>
+
+      <div className="map-shell">
+        <div className="map-side">
+          <h3>Layers</h3>
+          {LAYER_DEFS.map((l) => (
+            <label key={l.key} className="layer">
+              <input type="checkbox" checked={on[l.key]} onChange={() => flip(l.key)} disabled={ready === false} />
+              <span>{l.label}<em>{l.note}</em>
+                <span className={l.demo ? "src demo" : "src"}>{l.src}</span>
+              </span>
+            </label>
+          ))}
+          <h3 className="later">Reading the map</h3>
+          <p className="hint" style={{ margin: 0 }}>
+            Project marker size follows the composite score from the scoring
+            engine, so moving a weight there changes the map here. Colour follows
+            delivery status.
+          </p>
+        </div>
+
+        {ready === false ? (
+          <div className="map-fallback">
+            <div>
+              <h3>Map layer not available in this demo</h3>
+              <p>
+                The mapping library could not be loaded, which usually means the
+                browser has no route to the tile and script host. Everything else
+                in the dashboard works without it.
+              </p>
+              <p>
+                In the built system this panel holds the project points over the
+                Industrial Site Area boundaries, corridor truck volumes, commodity
+                flow gateways, and crash concentrations, served from the region's
+                own ArcGIS services rather than a public tile host.
+              </p>
+            </div>
+          </div>
+        ) : (
+          <div id="mapview" ref={host} />
+        )}
+      </div>
+
+      <Legend items={[
+        ...PHASES.filter((p) => tops.some((t) => t.phase === p)).map((p) => ({ label: p, color: PHASE_COLOR[p] })),
+        { label: "Industrial Site Area", color: "#4FBBAC" },
+      ]} />
+
+      <div className="panel" style={{ marginTop: 20 }}>
+        <div className="panel-head">
+          <h2>Layer provenance</h2>
+          <span className="panel-note">What is real and what is placeholder</span>
+        </div>
+        <p className="hint" style={{ maxWidth: "72ch" }}>
+          Project names, costs, funding status and sponsors follow the published
+          2026 list; coordinates are approximate corridor midpoints. The Industrial
+          Site Area extents, corridor volumes, gateway tonnages and crash counts
+          are demo geometry standing in for the Task 3 data acquisition and the
+          Task 4 ISA update. None of them should be read as regional figures.
+        </p>
+      </div>
+    </div>
+  );
 }
 
-const CHANGES = [
-  { y: "2026", t: "Added", p: "I-44 improvements, Oklahoma state line through Franklin County", n: "New entry at $200M regional share" },
-  { y: "2026", t: "Moved", p: "Merchants Bridge replacement", n: "Partially funded to completed" },
-  { y: "2026", t: "Revised", p: "I-270, I-70 to IL Rte. 157", n: "Programme cost restated to $1.2B across eight segments" },
-  { y: "2025", t: "Moved", p: "I-55 improvements, Rte. Z to U.S. Rte. 67", n: "Fully funded, construction underway" },
-  { y: "2025", t: "Added", p: "New terminal, Lambert International Airport", n: "Entered concept development at $3B" },
-];
+/* ================================================================== *
+ *  12. FUNDING AND GRANT-ELIGIBILITY TRACKER                          *
+ * ================================================================== */
 
-const WINDOWS = [
-  { prog: "Multimodal Project Discretionary Grant", when: "Autumn", who: "MoDOT, IDOT, port districts" },
-  { prog: "RAISE", when: "Winter", who: "Local sponsors and cities" },
-  { prog: "CRISI rail", when: "Spring", who: "TRRA, Class I partners, port districts" },
-  { prog: "Port Infrastructure Development", when: "Spring", who: "America's Central Port, KRPD" },
-  { prog: "State programme amendment", when: "Rolling", who: "MoDOT STIP, IDOT MYP" },
-];
+function Funding({ tops, onOpen }) {
+  const [status, setStatus] = useState("");
+  const rows = tops.filter((p) => !status || p.grantStatus === status);
 
-function Tracker({ tops, onOpen }) {
-  const [sponsorFilter, setSponsorFilter] = useState("");
-  const shown = tops.filter((p) => !sponsorFilter || p.state === sponsorFilter);
+  const byProgram = GRANT_PROGRAMS.map((g) => {
+    const set = tops.filter((p) => p.grant === g.name);
+    const part = (st) => set.filter((p) => p.grantStatus === st).reduce((a, p) => a + (st === "awarded" ? p.funded : gapOf(p)), 0);
+    const aw = part("awarded"), ap = part("applied"), el = part("eligible");
+    return {
+      label: g.name.replace(" / INFRA", "").replace("Port Infrastructure Development", "Port (PIDP)").replace("Bridge Investment Program", "Bridge (BIP)").replace("Airport Improvement Program", "Airport (AIP)"),
+      full: g.name,
+      total: aw + ap + el,
+      foot: set.length + " projects \u00b7 " + g.cycle + " cycle \u00b7 " + g.match,
+      parts: [
+        { name:"Awarded", v: aw, color:"#06403C" },
+        { name:"Applied", v: ap, color:"#17968B" },
+        { name:"Eligible, not applied", v: el, color:"#C2DAD5" },
+      ] };
+  }).filter((r) => r.total > 0).sort((a, b) => b.total - a.total);
+  const maxProg = Math.max(...byProgram.map((r) => r.total), 1);
+
+  const counts = ["awarded", "applied", "eligible"].map((s, i) => {
+    const set = tops.filter((p) => p.grantStatus === s);
+    return { name: s, v: set.length, color: SCALE[i * 2], items: set.map((p) => p.name) };
+  });
+
+  const matchNeed = tops.filter((p) => p.grantStatus !== "awarded")
+    .reduce((a, p) => a + gapOf(p) * (p.match / 100), 0);
+
+  return (
+    <div className="screen">
+      <header className="screen-head">
+        <div className="eyebrow">Funding</div>
+        <h1>Grant eligibility and match tracker</h1>
+        <p className="lede">
+          Each project against the federal or state programme it is eligible for,
+          where it sits in that programme's cycle, and the non-federal match the
+          region has to find if the application succeeds.
+        </p>
+      </header>
+
+      <div className="stat-row">
+        <Stat label="Awarded" value={counts[0].v + " projects"} sub="Funds committed" />
+        <Stat label="Applications live" value={counts[1].v + " projects"} sub="Awaiting decision" />
+        <Stat label="Eligible, not applied" value={counts[2].v + " projects"} sub="Pipeline candidates" />
+        <Stat label="Match exposure" value={money(matchNeed)} sub="Non-federal share on open gaps" />
+      </div>
+
+      <div className="chart-grid">
+        <ChartFrame
+          title="Pipeline by programme"
+          sub="Dollars awarded, applied for, and eligible but not yet applied. Hover a band for the programme."
+          legend={[{ label:"Awarded", color:"#06403C" }, { label:"Applied", color:"#17968B" }, { label:"Eligible", color:"#C2DAD5" }]}
+        >
+          <StackedBars rows={byProgram} maxV={maxProg} fmt={money} unit="Dollars" />
+        </ChartFrame>
+
+        <ChartFrame title="Where the projects sit" sub="Count by application status"
+          legend={counts.map((c) => ({ label: c.name, color: c.color }))}>
+          <Donut parts={counts} centreValue={String(tops.length)} centreLabel="PROJECTS" fmt={(v) => v + " projects"} unit="Application status" />
+        </ChartFrame>
+      </div>
+
+      <div className="panel">
+        <div className="panel-head">
+          <h2>Project by project</h2>
+          <div className="seg small">
+            <button className={status === "" ? "on" : ""} onClick={() => setStatus("")}>All</button>
+            {["awarded", "applied", "eligible"].map((s) => (
+              <button key={s} className={status === s ? "on" : ""} onClick={() => setStatus(s)}>
+                {s[0].toUpperCase() + s.slice(1)}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="table-wrap" style={{ border: 0 }}>
+          <table className="fund-table">
+            <thead><tr>
+              <th>Project</th><th>Eligible programme</th><th>Status</th>
+              <th style={{ textAlign: "right" }}>Gap</th>
+              <th style={{ width: 150 }}>Local match required</th>
+            </tr></thead>
+            <tbody>
+              {rows.map((p) => (
+                <tr key={p.id}>
+                  <td><button className="link" onClick={() => onOpen(p.id)}>{p.name}</button></td>
+                  <td>{p.grant}</td>
+                  <td><span className={"pill " + p.grantStatus}>{p.grantStatus}</span></td>
+                  <td className="c-num">{gapOf(p) > 0 ? money(gapOf(p)) : "\u2014"}</td>
+                  <td>
+                    <span className="match-cell">
+                      <span className="match-bar"><span style={{ width: p.match + "%" }} /></span>
+                      <span className="num" style={{ fontSize: 11.5 }}>
+                        {p.match}% &middot; {money(gapOf(p) * p.match / 100)}
+                      </span>
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div className="panel">
+        <div className="panel-head">
+          <h2>Programme cycles</h2>
+          <span className="panel-note">Illustrative timing, confirmed each year</span>
+        </div>
+        <table className="mini"><tbody>
+          {GRANT_PROGRAMS.map((g) => (
+            <tr key={g.name}>
+              <td className="mini-a">{g.name}</td>
+              <td className="mini-b">{g.cycle}</td>
+              <td className="mini-c">{g.match}</td>
+            </tr>
+          ))}
+        </tbody></table>
+      </div>
+    </div>
+  );
+}
+
+/* ================================================================== *
+ *  13. IMPLEMENTATION AND REPORTING TRACKER                           *
+ * ================================================================== */
+
+function Tracker({ tops, weights, onOpen }) {
+  const tip = useTip();
+  const [filter, setFilter] = useState("");
+  const shown = tops.filter((p) => !filter || p.state === filter);
+
+  const phaseCounts = MILESTONES.map((m, i) => {
+    const set = tops.filter((p) => milestoneIndex(p) === i + 1);
+    return {
+      label: m, full: "Projects at: " + m, total: set.length,
+      foot: set.length ? set.slice(0, 4).map((p) => p.name.split(",")[0]).join("; ") : "No projects at this stage",
+      parts: [{ name: m, v: set.length, color: SCALE[Math.min(i, 5)] }],
+    };
+  });
+  const maxPhase = Math.max(...phaseCounts.map((p) => p.total), 1);
+
+  const agencies = {};
+  tops.forEach((p) => { agencies[p.agency] = (agencies[p.agency] || 0) + gapOf(p); });
+  const agencyRows = Object.keys(agencies).map((a) => {
+    const set = tops.filter((p) => p.agency === a);
+    return {
+      label: a.length > 16 ? a.slice(0, 15) + "\u2026" : a,
+      full: a, total: agencies[a],
+      foot: set.length + " projects \u00b7 " + set.filter((p) => gapOf(p) > 0).length + " with an open gap",
+      parts: [{ name: "Unfunded gap carried", v: agencies[a], color: "#17968B" }],
+    };
+  }).sort((a, b) => b.total - a.total).slice(0, 8);
+  const maxAg = Math.max(...agencyRows.map((r) => r.total), 1);
+
   return (
     <div className="screen">
       <header className="screen-head">
         <div className="eyebrow">Delivery</div>
         <h1>Implementation and reporting</h1>
         <p className="lede">
-          What each sponsor owes at the next data call, where every project sits in
-          the delivery sequence, and what moved since last year's list.
+          Where every project sits in the delivery sequence, which agency owns the
+          next step and when it is due, and what moved since last year's list.
         </p>
       </header>
 
+      <div className="chart-grid">
+        <ChartFrame title="Projects by delivery stage" sub="Count at each milestone">
+          <StackedBars rows={phaseCounts} maxV={maxPhase} fmt={(v) => v.toFixed(0)} unit="Projects" />
+        </ChartFrame>
+        <ChartFrame title="Open gap by responsible agency" sub="Unfunded dollars each sponsor is carrying">
+          <StackedBars rows={agencyRows} maxV={maxAg} fmt={money} unit="Open gap" />
+        </ChartFrame>
+      </div>
+
       <div className="panel">
         <div className="panel-head">
-          <h2>Delivery position</h2>
+          <h2>Delivery position and next milestone</h2>
           <div className="seg small">
-            <button className={sponsorFilter === "" ? "on" : ""} onClick={() => setSponsorFilter("")}>All</button>
+            <button className={filter === "" ? "on" : ""} onClick={() => setFilter("")}>All</button>
             {STATES.map((s) => (
-              <button key={s} className={sponsorFilter === s ? "on" : ""} onClick={() => setSponsorFilter(s)}>
+              <button key={s} className={filter === s ? "on" : ""} onClick={() => setFilter(s)}>
                 {s === "MO-IL" ? "Bi-state" : s}
               </button>
             ))}
           </div>
-        </div>
-        <div className="ms-head">
-          {MILESTONES.map((m) => <span key={m}>{m}</span>)}
         </div>
         <ul className="ms-list">
           {shown.map((p) => {
             const idx = milestoneIndex(p);
             return (
               <li key={p.id}>
-                <button className="ms-name link" onClick={() => onOpen(p.id)}>{p.name}</button>
-                <span className="ms-track">
+                <span>
+                  <button className="ms-name link" onClick={() => onOpen(p.id)}>{p.name}</button>
+                  <span className="ms-agency" style={{ display: "block" }}>{p.agency}</span>
+                </span>
+                <span className="num" style={{ fontSize: 11.5, color: "#47706A" }}>
+                  {p.milestone}<br />{p.msDate}
+                </span>
+                <span className="ms-track"
+                  {...hoverProps(tip, () => (
+                    <ProjectTip p={p} weights={weights}
+                      extra={<TipRow k="Current stage" v={MILESTONES[idx - 1]} />} />
+                  ))}>
                   {MILESTONES.map((m, i) => (
-                    <span key={m} className={"ms-dot " + (i < idx ? "done" : "")} title={m} />
+                    <span key={m} className={"ms-dot " + (i === idx - 1 ? "now" : i < idx ? "done" : "")} title={m} />
                   ))}
                 </span>
               </li>
@@ -798,71 +1783,53 @@ function Tracker({ tops, onOpen }) {
         </ul>
       </div>
 
-      <div className="two-col">
-        <div className="panel">
-          <div className="panel-head">
-            <h2>Funding windows</h2>
-            <span className="panel-note">Illustrative cycle, confirmed each year</span>
-          </div>
-          <table className="mini">
-            <tbody>
-              {WINDOWS.map((w) => (
-                <tr key={w.prog}>
-                  <td className="mini-a">{w.prog}</td>
-                  <td className="mini-b">{w.when}</td>
-                  <td className="mini-c">{w.who}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+      <div className="panel">
+        <div className="panel-head">
+          <h2>What changed</h2>
+          <span className="panel-note">Frozen at each annual adoption</span>
         </div>
-
-        <div className="panel">
-          <div className="panel-head">
-            <h2>What changed</h2>
-            <span className="panel-note">Frozen at each adoption</span>
-          </div>
-          <ul className="change-list">
-            {CHANGES.map((c, i) => (
-              <li key={i}>
-                <span className="change-year">{c.y}</span>
-                <span className="change-type">{c.t}</span>
-                <span className="change-body">
-                  <strong>{c.p}</strong>
-                  <span>{c.n}</span>
-                </span>
-              </li>
-            ))}
-          </ul>
-        </div>
+        <ul className="change-list">
+          {CHANGES.map((c, i) => (
+            <li key={i}>
+              <span className="change-year">{c.y}</span>
+              <span className="change-type">{c.t}</span>
+              <span className="change-body"><strong>{c.p}</strong><span>{c.n}</span></span>
+            </li>
+          ))}
+        </ul>
       </div>
     </div>
   );
 }
 
-/* ------------------------------------------------------------------ */
-/*  Project record drawer                                              */
-/* ------------------------------------------------------------------ */
+/* ================================================================== *
+ *  14. PROJECT RECORD                                                 *
+ * ================================================================== */
 
-function Record({ project, kids, weights, onClose, onOpen }) {
+function Record({ project, kids, weights, rank, onClose, onOpen }) {
+  useEffect(() => {
+    const k = (e) => { if (e.key === "Escape") onClose(); };
+    window.addEventListener("keydown", k);
+    return () => window.removeEventListener("keydown", k);
+  }, [onClose]);
   if (!project) return null;
-  const maxM = 100;
   return (
     <>
       <div className="scrim" onClick={onClose} />
       <aside className="record" role="dialog" aria-label={project.name}>
         <div className="record-head">
           <div>
-            <div className="eyebrow">{project.state === "MO-IL" ? "Bi-state" : project.state} &middot; {project.mode}</div>
+            <div className="eyebrow">
+              {project.state === "MO-IL" ? "Bi-state" : project.state} &middot; {project.mode}
+              {rank ? " \u00b7 Rank " + rank : ""}
+            </div>
             <h2>{project.name}</h2>
-            <div className="record-sponsor">{project.note}</div>
+            <div className="record-sponsor">{project.agency} &middot; {project.lat.toFixed(4)}, {project.lng.toFixed(4)}</div>
           </div>
           <button className="close" onClick={onClose} aria-label="Close record">&times;</button>
         </div>
 
-        <div className="record-figure" aria-hidden="true">
-          <span>Fact sheet imagery</span>
-        </div>
+        <div className="record-figure" aria-hidden="true"><span>Fact sheet imagery</span></div>
 
         <div className="record-money">
           <div><span>Total cost</span><strong>{money(project.cost)}</strong></div>
@@ -871,20 +1838,26 @@ function Record({ project, kids, weights, onClose, onOpen }) {
         </div>
         <Ribbon project={project} height={10} />
 
+        <h3>Funding position</h3>
+        <dl className="rec-kv">
+          <dt>Programme</dt><dd>{project.grant}</dd>
+          <dt>Status</dt><dd><span className={"pill " + project.grantStatus}>{project.grantStatus}</span></dd>
+          <dt>Local match</dt><dd>{project.match}% &middot; {money(gapOf(project) * project.match / 100)}</dd>
+          <dt>Next milestone</dt><dd>{project.milestone}, {project.msDate}</dd>
+        </dl>
+
         <h3>Scorecard</h3>
         <div className="score-grid">
           {CRITERIA.map((c, i) => (
             <div key={c.key} className="score-row">
-              <span className="score-label">{c.label}</span>
-              <span className="score-bar">
-                <span style={{ width: (project.m[i] / maxM) * 100 + "%" }} />
-              </span>
+              <span>{c.label}</span>
+              <span className="score-bar"><span style={{ width: project.m[i] + "%" }} /></span>
               <span className="score-num">{project.m[i]}</span>
             </div>
           ))}
         </div>
         <div className="score-total">
-          <span>Weighted score</span>
+          <span>Weighted composite score</span>
           <strong>{scoreOf(project, weights).toFixed(1)}</strong>
         </div>
 
@@ -911,407 +1884,115 @@ function Record({ project, kids, weights, onClose, onOpen }) {
         )}
 
         <p className="record-foot">
-          Criterion values in this demo are placeholders. In the built system they
-          come from the sponsor data call and from state performance datasets, with
-          the source and vintage shown against each value.
+          Criterion values, grant status and milestone dates in this demo are
+          placeholders. In the built system they come from the sponsor data call
+          and state performance datasets, with source and vintage shown against
+          each value.
         </p>
       </aside>
     </>
   );
 }
 
-/* ------------------------------------------------------------------ */
-/*  Shell                                                              */
-/* ------------------------------------------------------------------ */
+/* ================================================================== *
+ *  15. SHELL                                                          *
+ * ================================================================== */
 
 const NAV = [
-  { k: "overview", label: "Portfolio" },
-  { k: "register", label: "Register" },
-  { k: "scoring", label: "Scoring" },
-  { k: "optimizer", label: "Scenarios" },
-  { k: "tracker", label: "Delivery" },
+  { k:"overview",  label:"Portfolio" },
+  { k:"register",  label:"Register" },
+  { k:"scoring",   label:"Scoring" },
+  { k:"map",       label:"Map" },
+  { k:"funding",   label:"Funding" },
+  { k:"delivery",  label:"Delivery" },
+  { k:"scenarios", label:"Scenarios" },
 ];
 
 function App() {
   const [view, setView] = useState("overview");
   const [openId, setOpenId] = useState(null);
-  const [filters, setFilters] = useState({ q: "", mode: "", state: "", phase: "" });
-  const [denominator, setDenominator] = useState("benefit");
+  const [filters, setFilters] = useState({ q:"", mode:"", state:"", phase:"" });
+  const [basis, setBasis] = useState("benefit");
   const [weights, setWeights] = useState(() => {
-    const w = {};
-    CRITERIA.forEach((c) => { w[c.key] = c.w; });
-    return w;
+    const w = {}; CRITERIA.forEach((c) => { w[c.key] = c.w; }); return w;
   });
-
   const baseWeights = useMemo(() => {
-    const w = {};
-    CRITERIA.forEach((c) => { w[c.key] = c.w; });
-    return w;
+    const w = {}; CRITERIA.forEach((c) => { w[c.key] = c.w; }); return w;
   }, []);
 
   const tops = useMemo(() => DATA.filter((p) => !p.parent), []);
 
-  const rankMap = (w, basis) => {
-    const o = [...tops].sort((a, b) => rankValue(b, w, basis) - rankValue(a, w, basis));
+  const rankMap = (w, b) => {
     const m = {};
-    o.forEach((p, i) => { m[p.id] = i + 1; });
+    [...tops].sort((a, c) => rankValue(c, w, b) - rankValue(a, w, b))
+      .forEach((p, i) => { m[p.id] = i + 1; });
     return m;
   };
-  const ranks = useMemo(() => rankMap(weights, denominator), [weights, denominator, tops]);
-  const baseRanks = useMemo(() => rankMap(baseWeights, denominator), [baseWeights, denominator, tops]);
+  const ranks = useMemo(() => rankMap(weights, basis), [weights, basis, tops]);
+  const baseRanks = useMemo(() => rankMap(baseWeights, basis), [baseWeights, basis, tops]);
 
   const filtered = useMemo(() => {
     const q = filters.q.trim().toLowerCase();
     const match = (p) =>
-      (!q || p.name.toLowerCase().includes(q) || (p.note || "").toLowerCase().includes(q)) &&
+      (!q || p.name.toLowerCase().includes(q) || (p.sponsor || "").toLowerCase().includes(q)) &&
       (!filters.mode || p.mode === filters.mode) &&
       (!filters.state || p.state === filters.state) &&
       (!filters.phase || p.phase === filters.phase);
     const keep = new Set();
-    DATA.forEach((p) => {
-      if (match(p)) {
-        keep.add(p.id);
-        if (p.parent) keep.add(p.parent);
-      }
-    });
+    DATA.forEach((p) => { if (match(p)) { keep.add(p.id); if (p.parent) keep.add(p.parent); } });
     return DATA.filter((p) => keep.has(p.id));
   }, [filters]);
 
   const open = DATA.find((p) => p.id === openId) || null;
   const kids = open ? DATA.filter((k) => k.parent === open.id) : [];
 
-  return (
-    <div className="app">
-      <style>{CSS}</style>
+  const counts = {
+    register: DATA.length, scoring: tops.length, map: tops.length,
+    funding: tops.length, delivery: tops.length,
+  };
 
+  return (
+    <TipProvider>
+    <div className="app">
       <nav className="rail">
         <div className="brand">
           <span className="brand-mark" aria-hidden="true" />
-          <span className="brand-text">
-            Regional Freightway
-            <em>Priority projects</em>
-          </span>
+          <span className="brand-text">Regional Freightway<em>Integrated dashboard</em></span>
         </div>
         <ul>
           {NAV.map((n) => (
             <li key={n.k}>
               <button className={view === n.k ? "on" : ""} onClick={() => setView(n.k)}>
-                {n.label}
+                {n.label}{counts[n.k] ? <i>{counts[n.k]}</i> : null}
               </button>
             </li>
           ))}
         </ul>
-        <div className="rail-foot">
-          <span>2026 list</span>
-          <span>Demo data</span>
-        </div>
+        <div className="rail-foot"><span>2026 list</span><span>Demo data</span></div>
       </nav>
 
       <main className="main">
-        {view === "overview" && <Overview tops={tops} onOpen={setOpenId} />}
-        {view === "register" && (
-          <Register
-            rows={filtered}
-            filters={filters}
-            setFilters={setFilters}
-            onOpen={setOpenId}
-            weights={weights}
-            ranks={ranks}
-          />
-        )}
-        {view === "scoring" && (
-          <Scoring
-            weights={weights}
-            setWeights={setWeights}
-            denominator={denominator}
-            setDenominator={setDenominator}
-            tops={tops}
-            onOpen={setOpenId}
-            baseRanks={baseRanks}
-          />
-        )}
-        {view === "optimizer" && <Optimizer tops={tops} weights={weights} onOpen={setOpenId} />}
-        {view === "tracker" && <Tracker tops={tops} onOpen={setOpenId} />}
+        {view === "overview"  && <Overview tops={tops} weights={weights} ranks={ranks} onOpen={setOpenId} />}
+        {view === "register"  && <Register rows={filtered} filters={filters} setFilters={setFilters}
+                                   onOpen={setOpenId} weights={weights} ranks={ranks} />}
+        {view === "scoring"   && <Scoring weights={weights} setWeights={setWeights} basis={basis}
+                                   setBasis={setBasis} tops={tops} onOpen={setOpenId} baseRanks={baseRanks} />}
+        {view === "map"       && <MapView tops={tops} weights={weights} ranks={ranks} onOpen={setOpenId} />}
+        {view === "funding"   && <Funding tops={tops} onOpen={setOpenId} />}
+        {view === "delivery"  && <Tracker tops={tops} weights={weights} onOpen={setOpenId} />}
+        {view === "scenarios" && <Optimizer tops={tops} weights={weights} onOpen={setOpenId} />}
       </main>
 
-      <Record project={open} kids={kids} weights={weights} onClose={() => setOpenId(null)} onOpen={setOpenId} />
+      <Record project={open} kids={kids} weights={weights} rank={open && !open.parent ? ranks[open.id] : null}
+        onClose={() => setOpenId(null)} onOpen={setOpenId} />
     </div>
+    </TipProvider>
   );
 }
 
-/* ------------------------------------------------------------------ */
-/*  Styles                                                             */
-/* ------------------------------------------------------------------ */
-
-const CSS = `
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
-
-.app {
-  --ink: #06302D;
-  --slate: #47706A;
-  --paper: #F0F6F4;
-  --panel: #FFFFFF;
-  --line: #CBE0DB;
-  --river: #0E7C72;
-  --green: #06403C;
-  --amber: #17968B;
-  --rust: #0B5A53;
-  --pale: #C2DAD5;
-  --wash: #E6F1EE;
-  --display: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
-  --body: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
-  --mono: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
-  display: flex;
-  min-height: 100vh;
-  background: var(--paper);
-  color: var(--ink);
-  font-family: var(--body);
-  font-size: 14px;
-  line-height: 1.5;
-}
-.app *:focus-visible { outline: 2px solid var(--river); outline-offset: 2px; }
-.app .stat-value, .app .c-num, .app .mode-val, .app .split-val, .app .gap-num,
-.app .weight-num, .app .rank-no, .app .rank-score, .app .move, .app .budget output,
-.app .pick-num, .app .pick-eff, .app .kid-num, .app .record-money strong,
-.app .score-num, .app .score-total strong, .app .change-year, .app .mini-b,
-.app .frontier-axis, .app .meta, .app .rank-meta, .app .record-sponsor,
-.app .rail-foot, .app .eyebrow, .app .record-figure {
-  font-variant-numeric: tabular-nums lining-nums;
-  font-feature-settings: "tnum" 1;
-}
-.app button { font: inherit; cursor: pointer; }
-
-/* rail */
-.rail {
-  width: 208px; flex: 0 0 208px; background: var(--ink); color: #DCEFEA;
-  display: flex; flex-direction: column; position: sticky; top: 0; height: 100vh;
-}
-.brand { padding: 22px 20px 18px; display: flex; gap: 10px; align-items: flex-start; }
-.brand-mark {
-  width: 14px; height: 34px; margin-top: 2px; flex: 0 0 14px;
-  background: repeating-linear-gradient(180deg, #4FD5C4 0 6px, transparent 6px 9px, #17968B 9px 15px, transparent 15px 18px);
-}
-.brand-text { font-family: var(--display); font-size: 15px; font-weight: 600; letter-spacing: -.005em; line-height: 1.2; }
-.brand-text em { display: block; font-family: var(--body); font-style: normal; font-size: 11px; font-weight: 400; letter-spacing: .08em; text-transform: uppercase; color: #7FB8AF; margin-top: 5px; }
-.rail ul { list-style: none; margin: 8px 0 0; padding: 0; flex: 1; }
-.rail li button {
-  width: 100%; text-align: left; background: none; border: 0; color: #9CC7C0;
-  padding: 9px 20px; font-size: 13.5px; letter-spacing: .02em; border-left: 3px solid transparent;
-}
-.rail li button:hover { color: #fff; background: rgba(255,255,255,.05); }
-.rail li button.on { color: #fff; border-left-color: #4FD5C4; background: rgba(79,213,196,.14); }
-.rail-foot { padding: 14px 20px; border-top: 1px solid rgba(255,255,255,.14); display: flex; flex-direction: column; gap: 2px; font-family: var(--mono); font-size: 10.5px; color: #7FB8AF; }
-
-/* main */
-.main { flex: 1; min-width: 0; }
-.screen { max-width: 1080px; padding: 34px 40px 70px; }
-.screen-head { margin-bottom: 26px; }
-.eyebrow { font-family: var(--mono); font-size: 10.5px; letter-spacing: .16em; text-transform: uppercase; color: var(--slate); }
-.screen-head h1 { font-family: var(--display); font-size: 34px; font-weight: 600; letter-spacing: -.022em; margin: 4px 0 8px; }
-.lede { max-width: 62ch; color: var(--slate); margin: 0; }
-
-/* stats */
-.stat-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; background: var(--line); border: 1px solid var(--line); margin-bottom: 22px; }
-.stat { background: var(--panel); padding: 16px 18px; }
-.stat-label { font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--slate); }
-.stat-value { font-family: var(--mono); font-size: 25px; font-weight: 600; letter-spacing: -.02em; margin-top: 4px; }
-.stat-sub { font-size: 12px; color: var(--slate); margin-top: 2px; }
-
-/* panels */
-.panel { background: var(--panel); border: 1px solid var(--line); padding: 18px 20px 20px; margin-bottom: 20px; }
-.panel-head { display: flex; align-items: baseline; justify-content: space-between; gap: 14px; margin-bottom: 14px; padding-bottom: 10px; border-bottom: 1px solid var(--line); }
-.panel-head h2 { font-family: var(--display); font-size: 16px; font-weight: 600; margin: 0; letter-spacing: -.01em; }
-.panel-note { font-size: 12px; color: var(--slate); }
-.two-col { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1.15fr); gap: 20px; align-items: start; }
-
-/* ribbon */
-.ribbon { display: flex; width: 100%; background: var(--pale); }
-.ribbon span { display: block; }
-
-/* overview */
-.mode-grid { display: flex; flex-direction: column; gap: 9px; }
-.mode-row { display: grid; grid-template-columns: 54px 1fr 78px; align-items: center; gap: 12px; }
-.mode-name { font-size: 12.5px; letter-spacing: .04em; text-transform: uppercase; color: var(--slate); }
-.mode-bar { display: flex; height: 16px; background: var(--wash); }
-.mode-fill { height: 100%; }
-.mode-val { font-family: var(--mono); font-size: 13px; text-align: right; }
-.split-row { display: flex; gap: 26px; margin-top: 16px; padding-top: 13px; border-top: 1px solid var(--line); }
-.split { display: flex; align-items: baseline; gap: 7px; }
-.split-key { font-size: 11px; letter-spacing: .09em; text-transform: uppercase; color: var(--slate); }
-.split-val { font-family: var(--mono); font-size: 15px; }
-.split-pct { font-size: 12px; color: var(--slate); }
-
-.gap-list { list-style: none; margin: 0; padding: 0; }
-.gap-item { width: 100%; display: grid; grid-template-columns: 1fr 150px 84px; align-items: center; gap: 14px; background: none; border: 0; border-bottom: 1px solid #EDEFEC; padding: 9px 0; text-align: left; }
-.gap-item:hover { background: #F3F9F7; }
-.gap-name { font-size: 13.5px; }
-.gap-num { font-family: var(--mono); font-size: 13px; text-align: right; color: var(--rust); }
-
-/* filters */
-.filters { display: flex; gap: 14px; align-items: flex-end; flex-wrap: wrap; margin-bottom: 16px; }
-.filters label { display: flex; flex-direction: column; gap: 4px; }
-.filters span { font-size: 10.5px; letter-spacing: .1em; text-transform: uppercase; color: var(--slate); }
-.filters input, .filters select { font: inherit; padding: 6px 9px; border: 1px solid var(--line); background: var(--panel); color: var(--ink); min-width: 148px; }
-.ghost { background: none; border: 1px solid var(--line); padding: 7px 12px; color: var(--slate); }
-.ghost:hover { border-color: var(--slate); color: var(--ink); }
-
-/* register */
-.table-wrap { border: 1px solid var(--line); background: var(--panel); overflow-x: auto; }
-table.register { width: 100%; border-collapse: collapse; font-size: 13px; }
-.register thead th { text-align: left; font-size: 10.5px; letter-spacing: .1em; text-transform: uppercase; color: var(--slate); font-weight: 500; padding: 10px 12px; border-bottom: 1px solid var(--line); white-space: nowrap; }
-.register td { padding: 8px 12px; border-bottom: 1px solid #E4EFEC; vertical-align: middle; }
-.register tr:hover td { background: #F3F9F7; }
-.register tr.child td.c-name { padding-left: 30px; }
-.register tr.child { color: var(--slate); }
-.c-num { text-align: right; font-family: var(--mono); font-size: 12.5px; white-space: nowrap; }
-.c-num.gap { color: var(--rust); }
-.c-rib { width: 130px; }
-.name-cell { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-.disc { width: 17px; height: 17px; line-height: 1; border: 1px solid var(--line); background: var(--panel); color: var(--slate); font-family: var(--mono); font-size: 12px; padding: 0; }
-.disc-space { width: 17px; }
-.link { background: none; border: 0; padding: 0; color: var(--ink); text-align: left; border-bottom: 1px solid transparent; }
-.link:hover { color: var(--river); border-bottom-color: var(--river); }
-.tag { font-size: 10px; letter-spacing: .07em; text-transform: uppercase; border: 1px solid; padding: 1px 5px; white-space: nowrap; }
-.meta { font-family: var(--mono); font-size: 11px; color: var(--slate); }
-.empty { padding: 26px 12px; color: var(--slate); text-align: center; }
-.legend { display: flex; gap: 16px; margin-top: 10px; font-size: 11.5px; color: var(--slate); }
-.legend i { display: inline-block; width: 10px; height: 10px; margin-right: 5px; }
-
-/* scoring */
-.weight-row { padding: 10px 0; border-bottom: 1px solid #E4EFEC; }
-.weight-top { display: flex; justify-content: space-between; align-items: baseline; }
-.weight-top label { font-size: 13px; }
-.weight-num { font-family: var(--mono); font-size: 13px; }
-.weight-row input[type=range] { width: 100%; accent-color: var(--river); margin: 5px 0 2px; }
-.weight-unit { font-size: 11.5px; color: var(--slate); }
-.denominator { margin-top: 16px; }
-.field-label { display: block; font-size: 10.5px; letter-spacing: .1em; text-transform: uppercase; color: var(--slate); margin-bottom: 6px; }
-.seg { display: inline-flex; border: 1px solid var(--line); }
-.seg button { background: var(--panel); border: 0; padding: 6px 12px; font-size: 12.5px; color: var(--slate); border-right: 1px solid var(--line); }
-.seg button:last-child { border-right: 0; }
-.seg button.on { background: var(--ink); color: #fff; }
-.seg.small button { padding: 4px 10px; font-size: 11.5px; }
-.hint { font-size: 12px; color: var(--slate); margin: 8px 0 0; max-width: 46ch; }
-
-.rank-list { list-style: none; margin: 0; padding: 0; counter-reset: r; }
-.rank-item { width: 100%; display: grid; grid-template-columns: 30px 1fr auto; gap: 12px; align-items: center; background: none; border: 0; border-bottom: 1px solid #E4EFEC; padding: 8px 0; text-align: left; }
-.rank-item:hover { background: #F3F9F7; }
-.rank-no { font-family: var(--mono); font-size: 12px; color: var(--slate); }
-.rank-name { font-size: 13px; }
-.rank-meta { display: block; font-family: var(--mono); font-size: 10.5px; color: var(--slate); margin-top: 1px; }
-.rank-right { display: flex; align-items: center; gap: 8px; }
-.rank-score { font-family: var(--mono); font-size: 13px; }
-.move { font-size: 10.5px; font-family: var(--mono); }
-.move.up { color: var(--green); }
-.move.down { color: var(--rust); }
-.fragile { font-size: 9.5px; letter-spacing: .09em; text-transform: uppercase; color: var(--river); border: 1px solid var(--river); background: var(--wash); padding: 1px 4px; }
-
-/* optimizer */
-.controls { display: flex; flex-direction: column; gap: 14px; margin-bottom: 18px; }
-.budget { display: grid; grid-template-columns: 1fr 110px; grid-template-areas: "l l" "s o"; gap: 8px 14px; align-items: center; }
-.budget .field-label { grid-area: l; margin: 0; }
-.budget input { grid-area: s; width: 100%; accent-color: var(--rust); }
-.budget output { grid-area: o; font-family: var(--mono); font-size: 19px; text-align: right; }
-.check { display: flex; gap: 8px; align-items: center; font-size: 13px; color: var(--slate); }
-.frontier svg { width: 100%; height: 150px; display: block; background: #F7FBFA; border: 1px solid var(--line); }
-.frontier-axis { display: flex; justify-content: space-between; font-family: var(--mono); font-size: 10.5px; color: var(--slate); margin-top: 5px; }
-.scenario-summary { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; background: var(--line); border: 1px solid var(--line); margin-top: 18px; }
-
-.pick-list { list-style: none; margin: 0; padding: 0; }
-.pick-list li { display: grid; grid-template-columns: 16px 1fr 84px 56px 150px; gap: 10px; align-items: center; padding: 7px 0; border-bottom: 1px solid #E4EFEC; color: var(--slate); }
-.pick-list li.picked { color: var(--ink); }
-.pick-mark { font-size: 10px; color: var(--pale); }
-.pick-list li.picked .pick-mark { color: var(--green); }
-.pick-name { font-size: 13px; }
-.pick-num, .pick-eff { font-family: var(--mono); font-size: 12.5px; text-align: right; }
-.pick-actions { display: flex; gap: 6px; justify-content: flex-end; }
-.chip { background: none; border: 1px solid var(--line); padding: 2px 8px; font-size: 11px; color: var(--slate); }
-.chip.on { background: var(--ink); border-color: var(--ink); color: #fff; }
-
-/* tracker */
-.ms-head { display: grid; grid-template-columns: 1fr 300px; }
-.ms-head span { display: none; }
-.ms-list { list-style: none; margin: 0; padding: 0; }
-.ms-list li { display: grid; grid-template-columns: 1fr 190px; gap: 16px; align-items: center; padding: 6px 0; border-bottom: 1px solid #E4EFEC; }
-.ms-name { font-size: 13px; }
-.ms-track { display: flex; gap: 5px; }
-.ms-dot { width: 100%; height: 8px; background: var(--wash); }
-.ms-dot.done { background: var(--green); }
-table.mini { width: 100%; border-collapse: collapse; font-size: 12.5px; }
-table.mini td { padding: 7px 0; border-bottom: 1px solid #E4EFEC; vertical-align: top; }
-.mini-a { font-weight: 500; }
-.mini-b { font-family: var(--mono); font-size: 11.5px; color: var(--slate); width: 74px; }
-.mini-c { color: var(--slate); }
-.change-list { list-style: none; margin: 0; padding: 0; }
-.change-list li { display: grid; grid-template-columns: 44px 68px 1fr; gap: 10px; padding: 9px 0; border-bottom: 1px solid #E4EFEC; }
-.change-year { font-family: var(--mono); font-size: 12px; color: var(--slate); }
-.change-type { font-size: 10px; letter-spacing: .08em; text-transform: uppercase; color: var(--river); padding-top: 2px; font-weight: 500; }
-.change-body { display: flex; flex-direction: column; font-size: 12.5px; }
-.change-body span { color: var(--slate); font-size: 12px; }
-
-/* record drawer */
-.scrim { position: fixed; inset: 0; background: rgba(6,48,45,.34); z-index: 20; }
-.record {
-  position: fixed; top: 0; right: 0; bottom: 0; width: min(460px, 92vw); z-index: 21;
-  background: var(--panel); border-left: 1px solid var(--line); overflow-y: auto; padding: 22px 26px 40px;
-  animation: slide .22s ease-out;
-}
-@keyframes slide { from { transform: translateX(18px); opacity: 0; } to { transform: none; opacity: 1; } }
-@media (prefers-reduced-motion: reduce) { .record { animation: none; } }
-.record-head { display: flex; justify-content: space-between; gap: 14px; align-items: flex-start; }
-.record-head h2 { font-family: var(--display); font-size: 21px; font-weight: 600; margin: 5px 0 4px; line-height: 1.2; letter-spacing: -.015em; }
-.record-sponsor { font-family: var(--mono); font-size: 11.5px; color: var(--slate); }
-.close { background: none; border: 0; font-size: 24px; line-height: 1; color: var(--slate); padding: 0 2px; }
-.record-figure {
-  height: 118px; margin: 18px 0 16px; border: 1px dashed var(--line);
-  background: repeating-linear-gradient(135deg, #F2F9F7 0 9px, #E6F1EE 9px 18px);
-  display: flex; align-items: center; justify-content: center;
-  font-family: var(--mono); font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: #86ADA6;
-}
-.record-money { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 8px; }
-.record-money div { display: flex; flex-direction: column; }
-.record-money span { font-size: 10.5px; letter-spacing: .09em; text-transform: uppercase; color: var(--slate); }
-.record-money strong { font-family: var(--mono); font-size: 17px; font-weight: 500; }
-.record-money .gap { color: var(--rust); }
-.record h3 { font-family: var(--display); font-size: 11px; letter-spacing: .11em; text-transform: uppercase; color: var(--slate); margin: 26px 0 10px; font-weight: 600; }
-.score-grid { display: flex; flex-direction: column; gap: 7px; }
-.score-row { display: grid; grid-template-columns: 1fr 92px 26px; gap: 10px; align-items: center; font-size: 12.5px; }
-.score-bar { height: 7px; background: var(--wash); display: block; }
-.score-bar span { display: block; height: 100%; background: var(--river); }
-.score-num { font-family: var(--mono); font-size: 11.5px; text-align: right; color: var(--slate); }
-.score-total { display: flex; justify-content: space-between; align-items: baseline; margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--line); }
-.score-total strong { font-family: var(--mono); font-size: 19px; font-weight: 500; }
-.record-ms { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 5px; }
-.record-ms li { font-size: 11px; padding: 3px 8px; border: 1px solid var(--line); color: var(--slate); }
-.record-ms li.done { background: var(--green); border-color: var(--green); color: #fff; }
-.kid-list { list-style: none; margin: 0; padding: 0; }
-.kid-list li { display: grid; grid-template-columns: 1fr 74px 62px; gap: 10px; align-items: center; padding: 6px 0; border-bottom: 1px solid #E4EFEC; font-size: 12.5px; }
-.kid-num { font-family: var(--mono); font-size: 11.5px; text-align: right; }
-.record-foot { font-size: 11.5px; color: var(--slate); margin-top: 26px; padding-top: 12px; border-top: 1px solid var(--line); }
-
-/* responsive */
-@media (max-width: 900px) {
-  .app { flex-direction: column; }
-  .rail { width: 100%; flex: none; height: auto; position: static; flex-direction: row; align-items: center; overflow-x: auto; }
-  .rail ul { display: flex; }
-  .rail li button { border-left: 0; border-bottom: 3px solid transparent; white-space: nowrap; padding: 12px 14px; }
-  .rail li button.on { border-left: 0; border-bottom-color: #4FD5C4; }
-  .rail-foot { display: none; }
-  .brand { padding: 14px 16px; }
-  .screen { padding: 24px 18px 60px; }
-  .screen-head h1 { font-size: 29px; }
-  .stat-row, .scenario-summary { grid-template-columns: repeat(2, 1fr); }
-  .two-col { grid-template-columns: 1fr; }
-  .pick-list li { grid-template-columns: 16px 1fr 74px; }
-  .pick-eff, .pick-actions { display: none; }
-  .gap-item { grid-template-columns: 1fr 76px; }
-  .gap-item .ribbon { display: none; }
-}
-`;
-
-
 const root = ReactDOM.createRoot(document.getElementById("root"));
 root.render(<App />);
+
 </script>
 </body>
 </html>
